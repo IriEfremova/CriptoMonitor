@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">CriptoMonitor</string>
+    <string name="action_new">Add New Currencies</string>
+    <string name="action_stop">Stop Service</string>
+    <string name="title_activity_main2">Main2Activity</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
+    <string name="currencies">Наименование валюты:</string>
+    <string name="min_price">Задать границу минимального значения:</string>
+    <string name="max_price">Задать границу максимального значения:</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+</resources>
+
