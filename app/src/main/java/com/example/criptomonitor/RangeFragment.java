@@ -32,7 +32,7 @@ public class RangeFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, final ViewGroup container,
                              Bundle savedInstanceState) {
-        Log.i("CriptoParser", "RangeFragment(onCreateView)");
+        Log.i("CriptoMonitor", "RangeFragment(onCreateView)");
         View view = inflater.inflate(R.layout.fragment_range, container, false);
 
         btnSet = view.findViewById(R.id.buttonSet);
@@ -78,7 +78,7 @@ public class RangeFragment extends Fragment {
                         //!!!!((MainActivity)getActivity()).setFragMain();
                     }
                 } catch (NumberFormatException e) {
-                    Log.i("CriptoParser", "RangeFragment(onCreateView):" + e.getMessage());
+                    Log.i("CriptoMonitor", "RangeFragment(onCreateView):" + e.getMessage());
                 } catch (ParseException e) {
                     e.printStackTrace();
                 }
@@ -89,7 +89,7 @@ public class RangeFragment extends Fragment {
 
     @Override
     public void onStart() {
-        Log.i("CriptoParser", "RangeFragment(onStart)");
+        Log.i("CriptoMonitor", "RangeFragment(onStart)");
         super.onStart();
     }
 /*
@@ -109,14 +109,14 @@ public class RangeFragment extends Fragment {
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
-        Log.i("CriptoParser", "RangeFragment(onCreate)");
+        Log.i("CriptoMonitor", "RangeFragment(onCreate)");
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
     }
 
     @Override
     public void onDestroy() {
-        Log.i("CriptoParser", "RangeFragment(onDestroy)!!!!!!!!!!!");
+        Log.i("CriptoMonitor", "RangeFragment(onDestroy)!!!!!!!!!!!");
         super.onDestroy();
     }
 

@@ -1,6 +1,11 @@
 package com.example.criptomonitor;
 
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -23,7 +28,7 @@ public class MainFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        Log.i("CriptoParser", "MainFragment(onCreateView)");
+        Log.i("CriptoMonitor", "MainFragment(onCreateView)");
         View view = inflater.inflate(R.layout.fragment_main, container,false);
 
         listView = (ListView) view.findViewById(R.id.myListView);
@@ -57,20 +62,20 @@ public class MainFragment extends Fragment {
 
     @Override
     public void onStart() {
-        Log.i("CriptoParser", "MainFragment(onStart)");
+        Log.i("CriptoMonitor", "MainFragment(onStart)");
         super.onStart();
     }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
-        Log.i("CriptoParser", "MainFragment(onCreate)");
+        Log.i("CriptoMonitor", "MainFragment(onCreate)");
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
     }
 
     @Override
     public void onDestroy() {
-        Log.i("CriptoParser", "MainFragment(onDestroy)");
+        Log.i("CriptoMonitor", "MainFragment(onDestroy)");
         super.onDestroy();
     }
 }
