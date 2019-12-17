@@ -118,9 +118,7 @@ public class CriptoMonitorService extends Service {
                     Log.i("CriptoMonitor", "CriptoMonitorService(onFailure): Error getting result - " + t.getMessage());
                     if(getApplication() != null) {
                         activityIntent = new Intent(CRIPTOPARSER_ACTION);
-                        activityIntent.putParcelableArrayListExtra(CRIPTOPARSER_DATA, null);
-                        // сообщаем о старте задачи
-                        //sendBroadcast(activityIntent);
+                        sendBroadcast(activityIntent);
                     }
                 }
             });
