@@ -14,17 +14,15 @@ public class JSonDataCurrencies {
     private JsonObject coins;
 
     //Метод, формирующий список всех возможных валют с их текущими ценами
-    public ArrayList<Currency> getListCurrencies() {
-        ArrayList<Currency> list = new ArrayList<Currency>();
+    public void updateListCurrencies(ArrayList<Currency> listFromService) {
         Iterator iterator = coins.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, JsonElement> entry = (Map.Entry<String, JsonElement>) iterator.next();
             JsonElement dataCurrencies = entry.getValue();
-            Currency element = new Currency(entry.getKey(), dataCurrencies.getAsJsonObject().get("exchange_rate").getAsDouble());
-            list.add(element);
+            Currency element = new Currency(entry.getKey(), dataCurrencies.getAsJsonObject().get("exchange_rate").getAsDouble(), -1.0, -1.0);
+            listFromService.add(element);
         }
-        Log.i("CriptoMonitor", "getListCurrencies: return list size of = " + list.size());
-        return list;
+        Log.i("CriptoMonitor", "getListCurrencies: return list size of = " + listFromService.size());
     }
 }
 

@@ -19,9 +19,9 @@ public class Currency implements Parcelable {
     private double maxPrice;
 
     //Конструктор, по умолчанию текущая цена по нулям, границ нет
-    public Currency(String name, double minValue, double maxValue) {
+    public Currency(String name, double price, double minValue, double maxValue) {
         this.name = name;
-        this.price = 0.0;
+        this.price = price;
         this.minPrice = minValue;
         this.maxPrice = maxValue;
     }

@@ -39,8 +39,8 @@ public class DBConnection extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
     }
 
-    public ArrayList<Currency> getListTrackCurrencies() {
-        ArrayList<Currency> list = new ArrayList<Currency>();
+
+    public void updateListMonitoringCurrencies(ArrayList<Currency> list) {
         Cursor c = db.query("Currencies", null, null, null, null, null, null);
         // ставим позицию курсора на первую строку выборки
         if (c.moveToFirst()) {
@@ -50,11 +50,10 @@ public class DBConnection extends SQLiteOpenHelper {
             int maxPriceColIndex = c.getColumnIndex("max_price");
             do {
                 //Заполняем список валют - имя валюты и стоп-цену
-                list.add(new Currency(c.getString(nameColIndex), c.getDouble(minPriceColIndex), c.getDouble(maxPriceColIndex)));
+                list.add(new Currency(c.getString(nameColIndex), 0.0, c.getDouble(minPriceColIndex), c.getDouble(maxPriceColIndex)));
             } while (c.moveToNext());
         }
         Log.i("CriptoMonitor", "DBConnection(getListTrackCurrencies): List count = " + list.size());
-        return list;
     }
 
     //Записываем данные по валюте в БД

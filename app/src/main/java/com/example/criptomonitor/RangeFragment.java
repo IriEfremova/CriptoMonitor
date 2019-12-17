@@ -21,12 +21,12 @@ import java.text.ParseException;
 public class RangeFragment extends Fragment {
     private RangeFragment fragmentRange;
 
-    Button btnSet;
-    TextView tvName;
-    TextView tvPrice;
-    EditText etMin;
-    EditText etMax;
-    Currency currency;
+    private Button btnSet;
+    private TextView tvName;
+    private TextView tvPrice;
+    private EditText etMin;
+    private EditText etMax;
+    private Currency currency;
     DecimalFormat df = new DecimalFormat("0.0000000000");
 
     @Override
