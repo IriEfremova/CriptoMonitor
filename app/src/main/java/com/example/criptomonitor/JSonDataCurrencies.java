@@ -14,27 +14,34 @@ public class JSonDataCurrencies {
     private JsonObject coins;
 
     //Метод, формирующий список всех возможных валют с их текущими ценами
-    public void updateListCurrencies(ArrayList<Currency> listFromService) {
+    public void updateMonitoringCurrencies(ArrayList<Currency> listFromService) {
         Iterator iterator = coins.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, JsonElement> entry = (Map.Entry<String, JsonElement>) iterator.next();
             JsonElement dataCurrencies = entry.getValue();
             int index = -1;
             for(int i = 0; i < listFromService.size(); i++){
-                if(listFromService.get(0).getName().equals(entry.getKey())) {
+                if(listFromService.get(i).getName().equals(entry.getKey())) {
                     index = i;
                     break;
                 }
             }
-            if(index == -1){
-                Currency element = new Currency(entry.getKey(), dataCurrencies.getAsJsonObject().get("exchange_rate").getAsDouble(), -1.0, -1.0);
-                listFromService.add(element);
-            }
-            else {
+            if(index != -1)
                 listFromService.get(index).setPrice(dataCurrencies.getAsJsonObject().get("exchange_rate").getAsDouble());
-            }
         }
         Log.i("CriptoMonitor", "getListCurrencies: return list size of = " + listFromService.size());
+    }
+
+    public ArrayList<Currency> getAllCurrencies() {
+        ArrayList<Currency> list = new ArrayList<Currency>();
+        Iterator iterator = coins.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, JsonElement> entry = (Map.Entry<String, JsonElement>) iterator.next();
+            JsonElement dataCurrencies = entry.getValue();
+            Currency element = new Currency(entry.getKey(), dataCurrencies.getAsJsonObject().get("exchange_rate").getAsDouble(), -1.0, -1.0);
+            list.add(element);
+        }
+        return list;
     }
 }
 

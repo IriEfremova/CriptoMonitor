@@ -31,6 +31,7 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
     private Intent intentService;
     //Объект-приемник событий от сервиса
     private BroadcastReceiver serviceReciever;
+    ArrayList<Currency> listAllCurrencies;
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -69,10 +70,10 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
                 @Override
                 public void onReceive(Context context, Intent intent) {
                     Log.i("CriptoMonitor", "BroadcastReceiver(onReceive)");
-                    String str = intent.getStringExtra(CriptoMonitorService.CRIPTOPARSER_ACTION);
-                    if(str != null) {
+
+                    if(intent.hasExtra(CriptoMonitorService.CRIPTOSERVICE_ERROR)) {
                         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-                        builder.setTitle("CriptoMonitor").setMessage("Ошибка передачи данных списка валют с сервера = " + str)
+                        builder.setTitle("CriptoMonitor").setMessage("Ошибка передачи данных списка валют с сервера = " + intent.getStringExtra(CriptoMonitorService.CRIPTOSERVICE_ERROR))
                                 .setCancelable(false).setNegativeButton("ОК",
                                 new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int id) {
@@ -81,6 +82,9 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
                                 });
                         AlertDialog alert = builder.create();
                         alert.show();
+                    }
+                    if(intent.hasExtra(CriptoMonitorService.CRIPTOSERVICE_LIST)) {
+                        listAllCurrencies = intent.getParcelableArrayListExtra(CriptoMonitorService.CRIPTOSERVICE_LIST);
                     }
                     if(getMonitoringCurrencies() != mainFragment.getCurrenciesMonitoringList()) {
                         setMonitoringCurrencies(mainFragment.getCurrenciesMonitoringList());
@@ -96,7 +100,7 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
     @Override
     protected void onStart() {
         super.onStart();
-        IntentFilter filter = new IntentFilter(CriptoMonitorService.CRIPTOPARSER_ACTION);
+        IntentFilter filter = new IntentFilter(CriptoMonitorService.CRIPTOSERVICE_ACTION);
         registerReceiver(serviceReciever, filter);
     }
 
@@ -223,6 +227,9 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
         }
         serviceReciever = null;
         intentService = null;
+        for(Currency curr : listAllCurrencies)
+            curr = null;
+        listAllCurrencies = null;
     }
 
     @Override
@@ -238,10 +245,29 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
         }
     }
 
+    public void updateListAllCurrencies(Currency currency, boolean clear){
+        for (int i = 0; i < listAllCurrencies.size(); i++) {
+            Currency curr = listAllCurrencies.get(i);
+            if (curr.equals(currency) == true) {
+                if (clear) {
+                    curr.setMaxPrice(-1.0);
+                    curr.setMinPrice(-1.0);
+                } else {
+                    curr.setMaxPrice(currency.getMaxPrice());
+                    curr.setMinPrice(currency.getMinPrice());
+                }
+                break;
+            }
+        }
+    }
+
     @Override
     public void setMonitoringCurrencies(ArrayList<Currency> listCurrencies) {
-        if(criptoService != null && isServiceBound)
+        if(criptoService != null && isServiceBound) {
             criptoService.setCurrenciesMonitoringList(listCurrencies);
+            for(Currency curr : listCurrencies)
+                updateListAllCurrencies(curr,false);
+        }
         else
             Log.i("CriptoMonitor", "MainActivity(setMonitoringCurrencies): not bind service");
     }
@@ -266,13 +292,7 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
 
     @Override
     public ArrayList<Currency> getAllCurrencies() {
-        if (criptoService != null && isServiceBound) {
-            return criptoService.getCurrenciesAllList();
-        }
-        else {
-            Log.i("CriptoMonitor", "MainActivity(getAllCurrencies): not bind service");
-            return null;
-        }
+        return listAllCurrencies;
     }
 
     @Override
@@ -290,7 +310,7 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
         {
             Currency curr = (Currency) it.next();
             if (listCurrencies.contains(curr) == false) {
-                criptoService.updateListAllCurrencies(curr, true);
+                updateListAllCurrencies(curr, true);
                 it.remove();
                 mainFragment.deleteCurrenyFromList(curr);
             }
@@ -302,7 +322,7 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
                 Currency newCurr = new Currency(curr.getName(), curr.getPrice(), curr.getPrice() * 0.95, curr.getPrice() * 1.05);
                 listService.add(newCurr);
                 mainFragment.insertCurrencyInList(newCurr);
-                criptoService.updateListAllCurrencies(newCurr, false);
+                updateListAllCurrencies(newCurr, false);
             }
         }
 

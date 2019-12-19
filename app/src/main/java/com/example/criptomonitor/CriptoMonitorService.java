@@ -9,7 +9,6 @@ import android.os.IBinder;
 import android.util.Log;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -25,7 +24,9 @@ public class CriptoMonitorService extends Service {
     private final String BASE_URL = "http://whattomine.com";
     private final String CHANNEL_NAME = "criptoparser_channel";
     //Действие-идентификатор сервиса
-    public final static String CRIPTOPARSER_ACTION = "CRIPTO_SERVICE";
+    public final static String CRIPTOSERVICE_ACTION = "CRIPTO_SERVICE";
+    public final static String CRIPTOSERVICE_ERROR = "CRIPTOSERVICE_ERROR";
+    public final static String CRIPTOSERVICE_LIST = "CRIPTOSERVICE_LIST";
     private final static int NOTIFICATION_ID = 1122;
     private final static int CHANNEL_ID = 456;
     private final static int MSG_UPDATE_LIST = 110;
@@ -38,7 +39,6 @@ public class CriptoMonitorService extends Service {
     private Timer serviceTimer;
     private ServiceTimerTask serviceTask;
     private ArrayList<Currency> currenciesMonitoringList;
-    private ArrayList<Currency> currenciesAllList;
 
     private final IBinder serviceBinder = new LocalBinder();
 
@@ -58,9 +58,8 @@ public class CriptoMonitorService extends Service {
         //Инициализируем класс библиотеки для работы с веб-сервисом
         retrofit = new Retrofit.Builder().baseUrl(BASE_URL).addConverterFactory(GsonConverterFactory.create()).build();
         jsonApi = retrofit.create(RetrofitInterface.class);
-        Intent intent = new Intent(CRIPTOPARSER_ACTION);
+        Intent intent = new Intent(CRIPTOSERVICE_ERROR);
         currenciesMonitoringList = new ArrayList<Currency>();
-        currenciesAllList = new ArrayList<Currency>();
 
         intervalReload = TIME_RELOAD_MIN;
         serviceTimer = new Timer();
@@ -80,7 +79,7 @@ public class CriptoMonitorService extends Service {
         serviceTask = new ServiceTimerTask();
         serviceTimer.schedule(serviceTask, 0, intervalReload);
     }
-
+/*
     public void updateListAllCurrencies(Currency currency, boolean clear){
         for (int i = 0; i < currenciesAllList.size(); i++) {
             Currency curr = currenciesAllList.get(i);
@@ -96,8 +95,10 @@ public class CriptoMonitorService extends Service {
             }
         }
     }
+*/
 
     public void onChangeRangeCurrencies(){
+        /*
         if(currenciesAllList != null && currenciesAllList.size() > 0 && currenciesMonitoringList != null && currenciesMonitoringList.size() > 0) {
             for (Currency curr : currenciesMonitoringList) {
                 int index = currenciesAllList.indexOf(curr);
@@ -114,6 +115,11 @@ public class CriptoMonitorService extends Service {
                 }
             }
         }
+        */
+    }
+
+    public void setCurrenciesMonitoringList(ArrayList<Currency> list) {
+        currenciesMonitoringList = list;
     }
 
     class ServiceTimerTask extends TimerTask {
@@ -126,15 +132,14 @@ public class CriptoMonitorService extends Service {
                     if (response.isSuccessful()) {
                         JSonDataCurrencies result = response.body();
                         //currenciesAllList.clear();
-                        result.updateListCurrencies(currenciesAllList);
-                        Log.i("CriptoMonitor", "CriptoMonitorService(onResponse): count of currencies = " + currenciesAllList.size());
+                        result.updateMonitoringCurrencies(currenciesMonitoringList);
                         onChangeRangeCurrencies();
-                        Intent intent = new Intent(CRIPTOPARSER_ACTION);
+                        Intent intent = new Intent(CRIPTOSERVICE_ACTION);
                         sendBroadcast(intent);
                     } else {
                         Log.i("CriptoMonitor", "CriptoMonitorService(onResponse): error code: " + response.code());
-                        Intent intent = new Intent(CRIPTOPARSER_ACTION);
-                        intent.putExtra(CRIPTOPARSER_ACTION, response.message());
+                        Intent intent = new Intent(CRIPTOSERVICE_ACTION);
+                        intent.putExtra(CRIPTOSERVICE_ERROR, response.message());
                         sendBroadcast(intent);
                     }
                 }
@@ -144,8 +149,8 @@ public class CriptoMonitorService extends Service {
                 public void onFailure(Call<JSonDataCurrencies> call, Throwable t) {
                     Log.i("CriptoMonitor", "CriptoMonitorService(onFailure): Error getting result - " + t.getMessage());
                     if(getApplication() != null) {
-                        Intent intent = new Intent(CRIPTOPARSER_ACTION);
-                        intent.putExtra(CRIPTOPARSER_ACTION, t.getLocalizedMessage());
+                        Intent intent = new Intent(CRIPTOSERVICE_ACTION);
+                        intent.putExtra(CRIPTOSERVICE_ERROR, t.getLocalizedMessage());
                         sendBroadcast(intent);
                     }
                 }
@@ -157,21 +162,32 @@ public class CriptoMonitorService extends Service {
         return currenciesMonitoringList;
     }
 
-    public void setCurrenciesMonitoringList(ArrayList<Currency> list) {
-        currenciesMonitoringList = list;
-        for(Currency currMnt : currenciesMonitoringList) {
-            for (Currency curr : currenciesAllList) {
-                if (currMnt.equals(curr)) {
-                    curr.setMaxPrice(currMnt.getMaxPrice());
-                    curr.setMinPrice(currMnt.getMinPrice());
-                    break;
+    public void updateAllCurrencies() {
+        Call<JSonDataCurrencies> call = jsonApi.getData();
+        call.enqueue(new Callback<JSonDataCurrencies>() {
+            //Метод, вызывающийся, когда приходит ответ от веб-сервиса
+            @Override
+            public void onResponse(Call<JSonDataCurrencies> call, Response<JSonDataCurrencies> response) {
+                if (response.isSuccessful()) {
+                    JSonDataCurrencies result = response.body();
+                    Intent intent = new Intent(CRIPTOSERVICE_ACTION);
+                    intent.putParcelableArrayListExtra(CRIPTOSERVICE_LIST, result.getAllCurrencies());
+                    sendBroadcast(intent);
+                } else {
+                    Log.i("CriptoMonitor", "CriptoMonitorService(onResponse): error code: " + response.code());
                 }
             }
-        }
-    }
 
-    public ArrayList<Currency> getCurrenciesAllList() {
-        return currenciesAllList;
+            //Метод, вызывающийся, когда приходит ошибка от веб-сервиса
+            @Override
+            public void onFailure(Call<JSonDataCurrencies> call, Throwable t) {
+                Log.i("CriptoMonitor", "CriptoMonitorService(onFailure): Error getting result - " + t.getMessage());
+                if(getApplication() != null) {
+                    Intent intent = new Intent(CRIPTOSERVICE_ACTION);
+                    sendBroadcast(intent);
+                }
+            }
+        });
     }
 
     @Override
@@ -199,6 +215,10 @@ public class CriptoMonitorService extends Service {
         serviceTimer.cancel();
         serviceTimer = null;
         serviceTask = null;
+        retrofit = null;
+        for(Currency curr : currenciesMonitoringList)
+            curr = null;
+        currenciesMonitoringList = null;
     }
 
 }
