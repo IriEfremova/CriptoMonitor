@@ -60,9 +60,9 @@ public class ServiceSettigsFragment extends Fragment {
             public void onClick(View view) {
                 if(view == buttonSet) {
                     int time = Integer.getInteger(etTime.getText().toString());
-                    if (time < 60 || time > 86400) {
+                    if (time < CriptoMonitorService.TIME_RELOAD_MIN || time > CriptoMonitorService.TIME_RELOAD_MAX) {
                         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                        builder.setTitle("CriptoParser").setMessage("Диапазон изменения интервала от 60 до 86400")
+                        builder.setTitle("CriptoParser").setMessage("Диапазон изменения интервала от 15 сек до 24 часов (86400 сек)")
                                 .setCancelable(false).setNegativeButton("ОК",
                                 new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int id) {

@@ -1,8 +1,10 @@
 package com.example.criptomonitor;
 
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
@@ -33,7 +35,6 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-            Log.i("CriptoMonitor", "ServiceConnection(onServiceConnected)");
             CriptoMonitorService.LocalBinder binder = (CriptoMonitorService.LocalBinder)iBinder;
             criptoService = binder.getService();
             isServiceBound = true;
@@ -41,7 +42,6 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
-            Log.i("CriptoMonitor", "ServiceConnection(onServiceDisconnected)");
             isServiceBound = false;
         }
     };
@@ -69,26 +69,40 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
                 @Override
                 public void onReceive(Context context, Intent intent) {
                     Log.i("CriptoMonitor", "BroadcastReceiver(onReceive)");
-                    if(getMonitoringCurrencies() != mainFragment.getCurrenciesMonitoringList())
+                    String str = intent.getStringExtra(CriptoMonitorService.CRIPTOPARSER_ACTION);
+                    if(str != null) {
+                        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                        builder.setTitle("CriptoMonitor").setMessage("Ошибка передачи данных списка валют с сервера = " + str)
+                                .setCancelable(false).setNegativeButton("ОК",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        dialog.cancel();
+                                    }
+                                });
+                        AlertDialog alert = builder.create();
+                        alert.show();
+                    }
+                    if(getMonitoringCurrencies() != mainFragment.getCurrenciesMonitoringList()) {
                         setMonitoringCurrencies(mainFragment.getCurrenciesMonitoringList());
+                        criptoService.updateTimer(mainFragment.getIntervalReloadService());
+                    }
                     mainFragment.updateListAdapter();
                 }
             };
         }
     }
 
+
     @Override
     protected void onStart() {
         super.onStart();
         IntentFilter filter = new IntentFilter(CriptoMonitorService.CRIPTOPARSER_ACTION);
-        Log.i("CriptoMonitor", "MainActivity(onStart): register reciever");
         registerReceiver(serviceReciever, filter);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        Log.i("CriptoMonitor", "MainActivity(onStop): unregister reciever");
         unregisterReceiver(serviceReciever);
     }
 
@@ -149,8 +163,9 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
     }
 
     private void setFragMain() {
+        Log.i("CriptoMonitor", "MainActivity(setFragMain)");
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-        transaction.addToBackStack(null);
+        //transaction.addToBackStack(null);
 
         if (mainFragment == null) {
             mainFragment = new MainFragment();
@@ -178,15 +193,21 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
 
 
     private void setFragAdd() {
+        Log.i("CriptoMonitor", "MainActivity(setFragAdd)");
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-        transaction.addToBackStack(null);
-        transaction.hide(mainFragment);
         if (addFragment == null) {
             addFragment = new AddFragment();
             transaction.add(R.id.fragLayout1, addFragment, "addFragment");
+            transaction.hide(addFragment);
+            transaction.commit();
+            transaction = getSupportFragmentManager().beginTransaction();
         }
-        else
-            transaction.show(addFragment);
+
+        transaction.addToBackStack(null);
+        if(mainFragment != null && mainFragment.isVisible())
+            transaction.hide(mainFragment);
+        transaction.show(addFragment);
+
         if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
             transaction.hide(rangeFragment);
         transaction.commit();
@@ -194,7 +215,6 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
 
     @Override
     protected void onDestroy() {
-        Log.i("CriptoMonitor", "MainActivity(onDestroy)");
         super.onDestroy();
 
         if (isServiceBound) {
@@ -210,12 +230,6 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
         if(criptoService != null && isServiceBound) {
 
             ArrayList<Currency> listService = criptoService.getCurrenciesMonitoringList();
-            for (Currency curr : listService) {
-                Log.i("CriptoMonitor", "MainActivity(setCheckCurrencies): 1111currency from service " + curr.getName());
-            }
-
-
-            Log.i("CriptoMonitor", "MainActivity(getMonitoringCurrencies): size of list = " + criptoService.getCurrenciesMonitoringList().size());
             return criptoService.getCurrenciesMonitoringList();
         }
         else {
@@ -266,9 +280,6 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
         ArrayList<Currency> listService = null;
         if(isServiceBound) {
             listService = criptoService.getCurrenciesMonitoringList();
-            for (Currency curr : listService) {
-                Log.i("CriptoMonitor", "MainActivity(setCheckCurrencies): currency from service " + curr.getName());
-            }
         }
         else
             Log.i("CriptoMonitor", "MainActivity(setCheckCurrencies): not bind service");
@@ -278,9 +289,11 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
         while (it.hasNext())
         {
             Currency curr = (Currency) it.next();
-            if (listCurrencies.contains(curr) == false)
+            if (listCurrencies.contains(curr) == false) {
+                criptoService.updateListAllCurrencies(curr, true);
                 it.remove();
-            mainFragment.deleteCurrenyFromList(curr);
+                mainFragment.deleteCurrenyFromList(curr);
+            }
         }
 
         for (Currency curr : listCurrencies) {
@@ -289,14 +302,11 @@ public class MainActivity extends AppCompatActivity implements DataExchanger{
                 Currency newCurr = new Currency(curr.getName(), curr.getPrice(), curr.getPrice() * 0.95, curr.getPrice() * 1.05);
                 listService.add(newCurr);
                 mainFragment.insertCurrencyInList(newCurr);
+                criptoService.updateListAllCurrencies(newCurr, false);
             }
         }
 
         listService = criptoService.getCurrenciesMonitoringList();
-        for (Currency curr : listService) {
-            Log.i("CriptoMonitor", "MainActivity(setCheckCurrencies): 000currency from service " + curr.getName());
-        }
-
         setFragMain();
         mainFragment.updateListAdapter();
     }

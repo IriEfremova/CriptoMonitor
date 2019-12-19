@@ -90,14 +90,18 @@ public class MainFragment extends Fragment {
         dbHelper = null;
         listMonitoringCurrencies.clear();
         listMonitoringCurrencies = null;
+        fragmentMain = null;
     }
 
     public void deleteCurrenyFromList(Currency currency) {
         dbHelper.deleteCurrency(currency);
     }
-
     public void insertCurrencyInList(Currency currency) {
         dbHelper.insertCurrency(currency);
+    }
+
+    public int getIntervalReloadService() {
+        return dbHelper.getInterval();
     }
 
     public ArrayList<Currency> getCurrenciesMonitoringList(){
@@ -120,22 +124,13 @@ public class MainFragment extends Fragment {
             alert.show();
         }
         else {
-            if(adapter == null) {
-                Log.i("CriptoMonitor", "MainFragment(updateListAdapter): create null adapter");
+            if(adapter == null)
                 adapter = new ItemAdapter(listView.getContext(), listenerListCurrencies.getMonitoringCurrencies());
-            }
-
-            if (((ItemAdapter) listView.getAdapter()) == null) {
-                Log.i("CriptoMonitor", "MainFragment(updateListAdapter): set adapter");
+            if (listView.getAdapter() == null)
                 // устанавливаем для списка адаптер
                 listView.setAdapter(adapter);
-
-            } else {
-                Log.i("CriptoMonitor", "MainFragment(updateListAdapter): update adapter");
-                //((ItemAdapter) listView.getAdapter()).clear();
-                //((ItemAdapter) listView.getAdapter()).addAll(listenerListCurrencies.getMonitoringCurrencies());
+             else
                 ((ItemAdapter) listView.getAdapter()).notifyDataSetChanged();
-            }
 
             ((ItemAdapter) (listView.getAdapter())).setSelectionPosition(0);
         }

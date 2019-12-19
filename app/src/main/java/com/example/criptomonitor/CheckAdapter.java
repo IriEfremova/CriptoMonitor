@@ -1,6 +1,7 @@
 package com.example.criptomonitor;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -53,8 +54,12 @@ public class CheckAdapter extends ArrayAdapter<Currency> {
     public ArrayList<Currency> getCheckCurrencies() {
         ArrayList<Currency> list = new ArrayList<Currency>();
         for(int i = 0; i < getCount(); i++){
+            Log.i("CriptoMonitor", "CheckAdapter(getCheckCurrencies): name " + getItem(i).getName() + "  " + getItem(i).getMaxPrice());
             if (getItem(i).getMaxPrice() != -1.0)
                 list.add(getItem(i));
+        }
+        for (Currency curr : list) {
+            Log.i("CriptoMonitor", "CheckAdapter(getCheckCurrencies): checkList " + curr.getName());
         }
         return list;
     }

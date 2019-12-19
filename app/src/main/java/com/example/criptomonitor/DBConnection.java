@@ -33,12 +33,27 @@ public class DBConnection extends SQLiteOpenHelper {
                 + "name text,"
                 + "min_price real,"
                 + "max_price real" + ");");
+        db.execSQL("create table Settings ("
+                + "id integer primary key autoincrement,"
+                + "name text,"
+                + "value integer" + ");");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
     }
 
+    public int getInterval() {
+        Cursor c = db.query("Settings", null, null, null, null, null, null);
+        // ставим позицию курсора на первую строку выборки
+        if (c.moveToFirst()) {
+            // определяем номера столбцов по имени в выборке
+            int valueColIndex = c.getColumnIndex("value");
+            return c.getInt(valueColIndex);
+        }
+        else
+            return -1;
+    }
 
     public void updateListMonitoringCurrencies(ArrayList<Currency> list) {
         Cursor c = db.query("Currencies", null, null, null, null, null, null);

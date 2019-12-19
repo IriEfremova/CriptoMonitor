@@ -3,6 +3,7 @@ package com.example.criptomonitor;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 
 
 public class AddFragment extends Fragment {
+    private AddFragment fragmentAdd;
     //Визуальный список для отображения списка всех возможных валют
     private ListView listView;
     private Button buttonAdd;
@@ -47,27 +49,38 @@ public class AddFragment extends Fragment {
                 listenerListCurrencies.setCheckCurrencies(list);
             }
         });
+        if(adapter == null) {
+            adapter = new CheckAdapter(listView.getContext(), listenerListCurrencies.getAllCurrencies());
+        }
+        if (((ItemAdapter) listView.getAdapter()) == null)
+            listView.setAdapter(adapter);
+        else
+            ((CheckAdapter) listView.getAdapter()).notifyDataSetChanged();
 
         return view;
     }
 
-    @Override
-    public void onStart() {
-        Log.i("CriptoMonitor", "AddFragment(onStart)");
-        super.onStart();
-        ArrayList<Currency> list = listenerListCurrencies.getAllCurrencies();
+    public void updateListAdapter(){
         if(adapter == null) {
-            adapter = new CheckAdapter(listView.getContext(), list);
-            // устанавливаем для списка адаптер
+            adapter = new CheckAdapter(listView.getContext(), listenerListCurrencies.getAllCurrencies());
+        }
+        if (((ItemAdapter) listView.getAdapter()) == null)
             listView.setAdapter(adapter);
-
-        }
-        else{
-            ((CheckAdapter) listView.getAdapter()).clear();
-            ((CheckAdapter) listView.getAdapter()).addAll(list);
+        else
             ((CheckAdapter) listView.getAdapter()).notifyDataSetChanged();
-        }
-
     }
 
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        Log.i("CriptoMonitor", "AddFragment(onCreate)");
+        super.onCreate(savedInstanceState);
+        setRetainInstance(true);
+    }
+
+    @Override
+    public void onDestroy() {
+        Log.i("CriptoMonitor", "AddFragment(onDestroy)");
+        super.onDestroy();
+        fragmentAdd = null;
+    }
 }
