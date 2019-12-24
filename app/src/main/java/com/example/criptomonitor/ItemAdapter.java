@@ -38,6 +38,7 @@ public class ItemAdapter extends ArrayAdapter<Currency> {
 
         if (selectionPosition == position){
             convertView.setBackgroundColor(colorGray);
+
         }else {
             convertView.setBackgroundColor(colorWhite);
         }

@@ -75,7 +75,6 @@ public class RangeFragment extends Fragment {
                     } else {
                         currency.setMinPrice(valueMin);
                         currency.setMaxPrice(valueMax);
-                        //!!!!((MainActivity)getActivity()).setFragMain();
                     }
                 } catch (NumberFormatException e) {
                     Log.i("CriptoMonitor", "RangeFragment(onCreateView):" + e.getMessage());
@@ -84,6 +83,12 @@ public class RangeFragment extends Fragment {
                 }
             }
         });
+        if (currency != null) {
+            tvName.setText(currency.getName());
+            tvPrice.setText(df.format(currency.getPrice()));
+            etMax.setText(df.format(currency.getMaxPrice()));
+            etMin.setText(df.format(currency.getMinPrice()));
+        }
         return view;
     }
 
@@ -92,20 +97,17 @@ public class RangeFragment extends Fragment {
         Log.i("CriptoMonitor", "RangeFragment(onStart)");
         super.onStart();
     }
-/*
-        currency = ((MainActivity) getActivity()).getSelectedCurrencies();
-        if (currencies != null) {
-            Log.i("CriptoParser", "RangeCurrenciesFragment(onStart): Currencies name = " + currencies.getName() + " min range = " + currencies.getMinPrice());
-            tvName.setText(currencies.getName());
-            tvPrice.setText(df.format(currencies.getPrice()));
-            etMax.setText(df.format(currencies.getMaxPrice()));
-            etMin.setText(df.format(currencies.getMinPrice()));
-        } else
-            Log.i("CriptoParser", "RangeCurrenciesFragment(onCreateView): No selected currency");
 
+    public void setSelectionCurrency(Currency mainFragCurrency) {
+        currency = mainFragCurrency;
+        if (getView() != null) {
+            Log.i("CriptoParser", "RangeCurrenciesFragment(setSelectionCurrency): Currencies name = " + currency.getName() + " min range = " + currency.getMinPrice());
+            tvName.setText(currency.getName());
+            tvPrice.setText(df.format(currency.getPrice()));
+            etMax.setText(df.format(currency.getMaxPrice()));
+            etMin.setText(df.format(currency.getMinPrice()));
+        }
     }
-    }
-*/
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -119,5 +121,4 @@ public class RangeFragment extends Fragment {
         Log.i("CriptoMonitor", "RangeFragment(onDestroy)!!!!!!!!!!!");
         super.onDestroy();
     }
-
 }

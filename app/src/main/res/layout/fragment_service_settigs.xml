@@ -32,7 +32,7 @@
             android:layout_weight="1"
             android:text="Статус:   " />
         <TextView
-            android:id="@+id/SerStatus"
+            android:id="@+id/testSerStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1" />

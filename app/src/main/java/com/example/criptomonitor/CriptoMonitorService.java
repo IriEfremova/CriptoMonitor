@@ -1,11 +1,15 @@
 package com.example.criptomonitor;
 
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -22,22 +26,27 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class CriptoMonitorService extends Service {
     //Ссылка на веб-сервис
     private final String BASE_URL = "http://whattomine.com";
-    private final String CHANNEL_NAME = "criptoparser_channel";
     //Действие-идентификатор сервиса
-    public final static String CRIPTOPARSER_ACTION = "CRIPTO_SERVICE";
-    //Ярлык для данных, которые передает сервис
-    public final static String CRIPTOPARSER_DATA = "CurrenciesList";
+    public final static String CRIPTOSERVICE_ACTION = "CRIPTO_SERVICE";
+    public final static String CRIPTOSERVICE_ACTION_LIST = "CRIPTO_SERVICE_LIST";
+    public final static String CRIPTOSERVICE_ERROR = "CRIPTOSERVICE_ERROR";
+    public final static String CRIPTOSERVICE_LIST = "CRIPTOSERVICE_LIST";
+    public final static String CRIPTOSERVICE_CHANNEL = "CRIPTOSERVICE_CHANNEL";
+    private final static String CHANNEL_ID = "com.example.criptomonitor";
     private final static int NOTIFICATION_ID = 1122;
-    private final int CHANNEL_ID = 456;
-    static final int MSG_UPDATE_LIST = 110;
+    private final static int SERVICE_ID = 1122;
+
+    public final static int TIME_RELOAD_MIN = 15000;
+    public final static int TIME_RELOAD_MAX = 86400000;
+    private int intervalReload;
 
     private Retrofit retrofit;
-    RetrofitInterface jsonApi;
+    private RetrofitInterface jsonApi;
     private Timer serviceTimer;
     private ServiceTimerTask serviceTask;
     private ArrayList<Currency> currenciesMonitoringList;
-    private ArrayList<Currency> currenciesAllList;
-    Intent activityIntent;
+    private NotificationManager notificationManager;
+    private NotificationCompat.Builder notificationBuilder;
 
     private final IBinder serviceBinder = new LocalBinder();
 
@@ -50,43 +59,64 @@ public class CriptoMonitorService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         Log.i("CriptoMonitor", "CriptoMonitorService(onBind)");
+        updateAllCurrencies();
         return serviceBinder;
     }
 
     public void onCreate() {
         super.onCreate();
-        Log.i("CriptoMonitor", "CriptoMonitorService(onCreate)");
         //Инициализируем класс библиотеки для работы с веб-сервисом
         retrofit = new Retrofit.Builder().baseUrl(BASE_URL).addConverterFactory(GsonConverterFactory.create()).build();
         jsonApi = retrofit.create(RetrofitInterface.class);
-        Intent intent = new Intent(CRIPTOPARSER_ACTION);
+        Intent intent = new Intent(CRIPTOSERVICE_ERROR);
         currenciesMonitoringList = new ArrayList<Currency>();
-        currenciesAllList = new ArrayList<Currency>();
+        notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            notificationBuilder = new NotificationCompat.Builder(this);
+        } else {
+            if (notificationManager.getNotificationChannel(CRIPTOSERVICE_CHANNEL) == null) {
+                NotificationChannel channel = new NotificationChannel(CRIPTOSERVICE_CHANNEL, "CriptoParser", NotificationManager.IMPORTANCE_DEFAULT);
+                notificationManager.createNotificationChannel(channel);
+            }
+            notificationBuilder = new NotificationCompat.Builder(this, CRIPTOSERVICE_CHANNEL);
+        }
+        //notificationBuilder.setSmallIcon(android.R.drawable.).setContentTitle("CriptoParser");
+
+        intervalReload = TIME_RELOAD_MIN;
         serviceTimer = new Timer();
         serviceTask = new ServiceTimerTask();
-        serviceTimer.schedule(serviceTask, 0, 15000);
+        serviceTimer.schedule(serviceTask, 0, intervalReload);
     }
 
-    public void updateTimer(int millisec){
-        serviceTimer.cancel();
-        serviceTimer.schedule(serviceTask, 0, millisec);
+    public int getIntervalReload() {
+        return intervalReload;
     }
 
-    public void onChangeRangeCurrencies(){
-        if(currenciesAllList != null && currenciesAllList.size() > 0 && currenciesMonitoringList != null && currenciesMonitoringList.size() > 0) {
+    public void updateTimer(int millisec) {
+        if (millisec < TIME_RELOAD_MIN)
+            intervalReload = TIME_RELOAD_MIN;
+        else if (millisec > TIME_RELOAD_MAX)
+            intervalReload = TIME_RELOAD_MAX;
+        else
+            intervalReload = millisec;
+        serviceTask.cancel();
+        serviceTask = new ServiceTimerTask();
+        serviceTimer.schedule(serviceTask, 0, intervalReload);
+        Log.i("CriptoMonitor", "CriptoMonitorService(updateTimer) interval reload = " + intervalReload);
+    }
+
+    public void onChangeRangeCurrencies() {
+        if (currenciesMonitoringList != null && currenciesMonitoringList.size() > 0) {
             for (Currency curr : currenciesMonitoringList) {
-                int index = currenciesAllList.indexOf(curr);
-                if (index != -1) {
-                    Currency item = currenciesAllList.get(index);
-                    curr.setPrice(item.getPrice());
-                    Log.i("CriptoMonitor", "CriptoMonitorService(onChangeRangeCurrencies) set price = " + curr.getPrice());
-                    if (curr.getPrice() >= curr.getMaxPrice())
-                        Log.i("CriptoMonitor", "CriptoMonitorService(onChangeRangeCurrencies)");
-                        //notificationMng.notify(CHANNEL_ID, getNotification(item.getName(), item.getMaxPrice(), 1));
-                    else if (curr.getPrice() <= curr.getMinPrice())
-                        Log.i("CriptoMonitor", "CriptoMonitorService(onChangeRangeCurrencies)");
-                        //notificationMng.notify(CHANNEL_ID, getNotification(item.getName(), item.getMinPrice(), 0));
+                //Log.i("CriptoMonitor", "CriptoMonitorService(onChangeRangeCurrencies) set price = " + curr.getPrice());
+                if (curr.getPrice() >= curr.getMaxPrice()) {
+                    Log.i("CriptoMonitor", "CriptoMonitorService(onChangeRangeCurrencies)");
+                    notificationManager.notify(NOTIFICATION_ID, getNotification(curr.getName(), curr.getMaxPrice(), 1));
+                }
+                else if (curr.getPrice() <= curr.getMinPrice()) {
+                    Log.i("CriptoMonitor", "CriptoMonitorService(onChangeRangeCurrencies)");
+                    notificationManager.notify(NOTIFICATION_ID, getNotification(curr.getName(), curr.getMinPrice(), 0));
                 }
             }
         }
@@ -101,14 +131,17 @@ public class CriptoMonitorService extends Service {
                 public void onResponse(Call<JSonDataCurrencies> call, Response<JSonDataCurrencies> response) {
                     if (response.isSuccessful()) {
                         JSonDataCurrencies result = response.body();
-                        currenciesAllList.clear();
-                        result.updateListCurrencies(currenciesAllList);
-                        Log.i("CriptoMonitor", "CriptoMonitorService(onResponse): count of currencies = " + currenciesAllList.size());
+                        result.updateMonitoringCurrencies(currenciesMonitoringList);
                         onChangeRangeCurrencies();
-                        Intent intent = new Intent(CRIPTOPARSER_ACTION);
-                        sendBroadcast(intent);
+                        if (getApplication() != null) {
+                            Intent intent = new Intent(CRIPTOSERVICE_ACTION);
+                            sendBroadcast(intent);
+                        }
                     } else {
                         Log.i("CriptoMonitor", "CriptoMonitorService(onResponse): error code: " + response.code());
+                        Intent intent = new Intent(CRIPTOSERVICE_ACTION);
+                        intent.putExtra(CRIPTOSERVICE_ERROR, response.message());
+                        sendBroadcast(intent);
                     }
                 }
 
@@ -116,10 +149,9 @@ public class CriptoMonitorService extends Service {
                 @Override
                 public void onFailure(Call<JSonDataCurrencies> call, Throwable t) {
                     Log.i("CriptoMonitor", "CriptoMonitorService(onFailure): Error getting result - " + t.getMessage());
-                    if(getApplication() != null) {
-                        activityIntent = new Intent(CRIPTOPARSER_ACTION);
-                        sendBroadcast(activityIntent);
-                    }
+                    Intent intent = new Intent(CRIPTOSERVICE_ACTION);
+                    intent.putExtra(CRIPTOSERVICE_ERROR, t.getLocalizedMessage());
+                    sendBroadcast(intent);
                 }
             });
         }
@@ -129,32 +161,62 @@ public class CriptoMonitorService extends Service {
         return currenciesMonitoringList;
     }
 
-    public void setCurrenciesMonitoringList(ArrayList<Currency> list) {
-        currenciesMonitoringList = list;
+    public void updateAllCurrencies() {
+        Log.i("CriptoMonitor", "CriptoMonitorService(updateAllCurrencies)");
+        Call<JSonDataCurrencies> call = jsonApi.getData();
+        call.enqueue(new Callback<JSonDataCurrencies>() {
+            //Метод, вызывающийся, когда приходит ответ от веб-сервиса
+            @Override
+            public void onResponse(Call<JSonDataCurrencies> call, Response<JSonDataCurrencies> response) {
+                if (response.isSuccessful()) {
+                    JSonDataCurrencies result = response.body();
+                    Intent intent = new Intent(CRIPTOSERVICE_ACTION);
+                    intent.putParcelableArrayListExtra(CRIPTOSERVICE_LIST, result.getAllCurrencies());
+                    sendBroadcast(intent);
+                } else {
+                    Log.i("CriptoMonitor", "CriptoMonitorService(onResponse): error code: " + response.code());
+                    Intent intent = new Intent(CRIPTOSERVICE_ACTION);
+                    intent.putExtra(CRIPTOSERVICE_ERROR, response.message());
+                    sendBroadcast(intent);
+                }
+            }
+
+            //Метод, вызывающийся, когда приходит ошибка от веб-сервиса
+            @Override
+            public void onFailure(Call<JSonDataCurrencies> call, Throwable t) {
+                Log.i("CriptoMonitor", "CriptoMonitorService(onFailure): Error getting result - " + t.getMessage());
+                Intent intent = new Intent(CRIPTOSERVICE_ACTION_LIST);
+                sendBroadcast(intent);
+            }
+        });
     }
 
-    public ArrayList<Currency> getCurrenciesAllList() {
-        return currenciesAllList;
+    public Notification getNotification(String name, double price, int typeBorder) {
+        Intent resultIntent = new Intent(this, MainActivity.class);
+        PendingIntent resultPendingIntent = PendingIntent.getActivity(this, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        if (name == null)
+            return notificationBuilder.setContentIntent(resultPendingIntent).build();
+        else {
+            String str = "Валюта достигла границы (неизвестный тип границы)...";
+            if (typeBorder == 0)
+                str = String.format("Валюта %s достигла нижней границы %f", name, price);
+            else if (typeBorder == 1)
+                str = String.format("Валюта %s достигла верхней границы %f", name, price);
+            return notificationBuilder.setContentText(str).setContentIntent(resultPendingIntent).build();
+        }
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d("CriptoMonitor", "CriptoMonitorService(onStartCommand)");
         super.onStartCommand(intent, flags, startId);
-        PendingIntent pi = PendingIntent.getActivity(getApplicationContext(), 0,
-                new Intent(getApplicationContext(), MainActivity.class),
-                PendingIntent.FLAG_UPDATE_CURRENT);
-        Notification mNotification = new Notification();
-        mNotification.tickerText = "Servis of CriptoMonitor";
-        mNotification.flags |= Notification.FLAG_ONGOING_EVENT;
-        startForeground(NOTIFICATION_ID, mNotification);
+        startForeground(SERVICE_ID, getNotification(null, 0.0, 0));
 
         return START_NOT_STICKY;
     }
 
     @Override
     public boolean stopService(Intent name) {
-        Log.d("CriptoMonitor", "CriptoMonitorService(stopService)");
         stopForeground(true);
         return super.stopService(name);
     }
@@ -164,7 +226,10 @@ public class CriptoMonitorService extends Service {
         serviceTimer.cancel();
         serviceTimer = null;
         serviceTask = null;
-        Log.d("CriptoMonitor", "CriptoMonitorService(MyService onDestroy)");
+        retrofit = null;
+        for (Currency curr : currenciesMonitoringList)
+            curr = null;
+        currenciesMonitoringList = null;
     }
 
 }
