@@ -49,14 +49,15 @@ public class AddFragment extends Fragment {
                 listenerListCurrencies.setCheckCurrencies(list);
             }
         });
-        if(adapter == null) {
-            adapter = new CheckAdapter(listView.getContext(), listenerListCurrencies.getAllCurrencies());
-        }
-        if (((ItemAdapter) listView.getAdapter()) == null)
-            listView.setAdapter(adapter);
-        else
-            ((CheckAdapter) listView.getAdapter()).notifyDataSetChanged();
+        if(listenerListCurrencies.getAllCurrencies() != null) {
+            if (adapter == null)
+                adapter = new CheckAdapter(listView.getContext(), listenerListCurrencies.getAllCurrencies());
 
+            if (((ItemAdapter) listView.getAdapter()) == null)
+                listView.setAdapter(adapter);
+            else
+                ((CheckAdapter) listView.getAdapter()).notifyDataSetChanged();
+        }
         return view;
     }
 

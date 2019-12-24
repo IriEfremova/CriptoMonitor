@@ -29,7 +29,6 @@ public class JSonDataCurrencies {
             if(index != -1)
                 listFromService.get(index).setPrice(dataCurrencies.getAsJsonObject().get("exchange_rate").getAsDouble());
         }
-        Log.i("CriptoMonitor", "getListCurrencies: return list size of = " + listFromService.size());
     }
 
     public ArrayList<Currency> getAllCurrencies() {
@@ -41,7 +40,9 @@ public class JSonDataCurrencies {
             Currency element = new Currency(entry.getKey(), dataCurrencies.getAsJsonObject().get("exchange_rate").getAsDouble(), -1.0, -1.0);
             list.add(element);
         }
+        Log.i("CriptoMonitor", "JSonDataCurrencies(getAllCurrencies): size of list = " + list.size());
         return list;
     }
+
 }
 
