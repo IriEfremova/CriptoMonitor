@@ -10,10 +10,13 @@ public interface DataExchanger {
     public ArrayList<Currency> getAllCurrencies();
     public void setCheckCurrencies(ArrayList<Currency> listCurrencies);
     public ArrayList<Currency> getMonitoringCurrencies();
-    public void setServerSettings(int time, boolean turnOn);
+    public void setServerSettings(int time);
     public int isServiceStart();
     public void changeSelectionCurrency();
     public void deleteCurrency(Currency currency);
     public void updateRange();
     public void updateFragLayout(int mode);
+    public boolean isServiceStartForeground();
+    public void setServiceStartForeground(boolean isForeground);
+    public void showAlertDialog(String message);
 }

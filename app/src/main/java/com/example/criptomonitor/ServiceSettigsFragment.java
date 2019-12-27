@@ -12,6 +12,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -19,13 +21,11 @@ import java.util.ArrayList;
 
 public class ServiceSettigsFragment extends Fragment {
     private Button buttonSet;
-    private Button buttonStart;
-    private Button buttonStop;
     private EditText etTime;
     private TextView serviceName;
     private TextView serviceStatus;
+    private CheckBox checkForeground;
     private DataExchanger listenerListCurrencies;
-    private int serviseInterval;
 
     @Override
     public void onAttach(Context context) {
@@ -45,69 +45,36 @@ public class ServiceSettigsFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_service_settigs, container, false);
 
         buttonSet = view.findViewById(R.id.buttonSet);
-        buttonStop = view.findViewById(R.id.buttonStop);
-        buttonStart = view.findViewById(R.id.buttonStart);
+        checkForeground = view.findViewById(R.id.checkForeground);
         serviceName = view.findViewById(R.id.textSerName);
         serviceStatus = view.findViewById(R.id.testSerStatus);
         etTime = view.findViewById(R.id.editTime);
 
         serviceName.setText("CriptoMonitor");
-        serviseInterval = listenerListCurrencies.isServiceStart();
-
-        if(listenerListCurrencies != null){
-            if(serviseInterval != -1) {
-                buttonStart.setEnabled(false);
-                buttonStop.setEnabled(true);
-                etTime.setText(String.valueOf(serviseInterval));
-                serviceStatus.setText("Запущен");
+        checkForeground.setChecked(listenerListCurrencies.isServiceStartForeground());
+        checkForeground.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                if (listenerListCurrencies != null) {
+                    listenerListCurrencies.setServiceStartForeground(b);
+                }
             }
-            else {
-                buttonStart.setEnabled(true);
-                buttonStop.setEnabled(false);
-                serviceStatus.setText("Остановлен");
-            }
-        }
+        });
 
-        View.OnClickListener listener = new View.OnClickListener(){
+        buttonSet.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                boolean isServiseStart = (serviseInterval != -1 ? true : false);
-                if(view == buttonSet) {
-                    int time = Integer.parseInt(etTime.getText().toString());
-                    if (time < CriptoMonitorService.TIME_RELOAD_MIN || time > CriptoMonitorService.TIME_RELOAD_MAX) {
-                        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                        builder.setTitle("CriptoParser").setMessage("Диапазон изменения интервала от 15 сек до 24 часов (86400 сек)")
-                                .setCancelable(false).setNegativeButton("ОК",
-                                new DialogInterface.OnClickListener() {
-                                    public void onClick(DialogInterface dialog, int id) {
-                                        dialog.cancel();
-                                    }
-                                });
-                        AlertDialog alert = builder.create();
-                        alert.show();
-                    } else
-                        listenerListCurrencies.setServerSettings(time, isServiseStart);
-                }
-                else if(view == buttonStart || view == buttonStop){
-                    if (listenerListCurrencies != null) {
-                        listenerListCurrencies.setServerSettings(0, !isServiseStart);
-                        if(isServiseStart == true) {
-                            serviceStatus.setText("Остановлен");
-                            buttonStart.setEnabled(true);
-                            buttonStop.setEnabled(false);
-                        }
-                        else {
-                            buttonStart.setEnabled(false);
-                            buttonStop.setEnabled(true);
-                            serviceStatus.setText("Запущен");
-                        }
+                if (listenerListCurrencies != null) {
+                    if (view == buttonSet) {
+                        int time = Integer.parseInt(etTime.getText().toString());
+                        if (time < CriptoMonitorService.TIME_RELOAD_MIN || time > CriptoMonitorService.TIME_RELOAD_MAX) {
+                            listenerListCurrencies.showAlertDialog("Диапазон изменения интервала от 15 сек до 24 часов (86400 сек)");
+                        } else
+                            listenerListCurrencies.setServerSettings(time);
                     }
                 }
             }
-        };
-        buttonSet.setOnClickListener(listener);
-        buttonStart.setOnClickListener(listener);
-        buttonStop.setOnClickListener(listener);
+        });
         return view;
     }
 
@@ -116,5 +83,23 @@ public class ServiceSettigsFragment extends Fragment {
         Log.i("CriptoMonitor", "ServiceSettigsFragment(onCreate)");
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        if(listenerListCurrencies != null){
+            int interval = listenerListCurrencies.isServiceStart();
+            if( interval != -1) {
+                etTime.setText(String.valueOf(interval));
+                if(listenerListCurrencies.isServiceStartForeground())
+                    serviceStatus.setText("Запущен в фоновом режиме");
+                else
+                    serviceStatus.setText("Запущен в стандартном режиме");
+            }else {
+                etTime.setText("");
+                serviceStatus.setText("Остановлен");
+            }
+        }
     }
 }

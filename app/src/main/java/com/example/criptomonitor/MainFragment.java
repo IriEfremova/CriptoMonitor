@@ -95,7 +95,7 @@ public class MainFragment extends Fragment {
         //Регистрируем контекстное меню
         registerForContextMenu(listView);
 
-        if(adapter != null){
+        if (adapter != null) {
             progressBar.setVisibility(ProgressBar.INVISIBLE);
             listView.setAdapter(adapter);
             ((ItemAdapter) listView.getAdapter()).notifyDataSetChanged();
@@ -106,7 +106,7 @@ public class MainFragment extends Fragment {
 
     public void updateMonitoringFromDB(ArrayList<Currency> serviceList) {
         dbHelper.updateListMonitoringCurrencies(serviceList);
-        if(listAllCurrencies != null && listAllCurrencies.size() > 0) {
+        if (listAllCurrencies != null && listAllCurrencies.size() > 0) {
             for (int i = 0; i < serviceList.size(); i++) {
                 Currency currMnt = serviceList.get(i);
                 for (int j = 0; j < listAllCurrencies.size(); j++) {
@@ -139,7 +139,7 @@ public class MainFragment extends Fragment {
         dbHelper.close();
         dbHelper = null;
         fragmentMain = null;
-        if(listAllCurrencies != null) {
+        if (listAllCurrencies != null) {
             listAllCurrencies.clear();
             listAllCurrencies = null;
         }
@@ -178,18 +178,7 @@ public class MainFragment extends Fragment {
 
     public void updateListAdapter() {
         Log.i("CriptoMonitor", "MainFragment(updateListAdapter)");
-        if (listenerListCurrencies.getMonitoringCurrencies() == null) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-            builder.setTitle("CriptoMonitor").setMessage("Ошибка передачи данных отслеживаемых валют с сервера = ")
-                    .setCancelable(false).setNegativeButton("ОК",
-                    new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            dialog.cancel();
-                        }
-                    });
-            AlertDialog alert = builder.create();
-            alert.show();
-        } else {
+        if (listenerListCurrencies.getMonitoringCurrencies() != null) {
             if (adapter == null)
                 adapter = new ItemAdapter(listView.getContext(), listenerListCurrencies.getMonitoringCurrencies());
             if (listView.getAdapter() == null)
@@ -197,16 +186,12 @@ public class MainFragment extends Fragment {
                 listView.setAdapter(adapter);
             else
                 ((ItemAdapter) listView.getAdapter()).notifyDataSetChanged();
-
-//          ((ItemAdapter) (listView.getAdapter())).setSelectionPosition(0);
-//           listenerListCurrencies.changeSelectionCurrency();
         }
-
         progressBar.setVisibility(ProgressBar.INVISIBLE);
     }
 
     public Currency getSelectionCurrency() {
-        if (listView.getAdapter() != null) {
+        if (listView.getAdapter() != null && listView.getAdapter().getCount() > 0) {
             int pos = ((ItemAdapter) (listView.getAdapter())).getSelectionPosition();
             return (Currency) listView.getItemAtPosition(pos);
         } else
@@ -238,7 +223,8 @@ public class MainFragment extends Fragment {
     @Override
     public void onHiddenChanged(boolean hidden) {
         super.onHiddenChanged(hidden);
-        if(hidden == false){
+        Log.i("CriptoMonitor", "MainFragment(onHiddenChanged)");
+        if (hidden == false) {
             listenerListCurrencies.updateFragLayout(DataExchanger.LAYOUT_MAIN);
         }
     }

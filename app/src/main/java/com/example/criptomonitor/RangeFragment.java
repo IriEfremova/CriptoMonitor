@@ -92,12 +92,6 @@ public class RangeFragment extends Fragment {
         return view;
     }
 
-    @Override
-    public void onStart() {
-        Log.i("CriptoMonitor", "RangeFragment(onStart)");
-        super.onStart();
-    }
-
     public void setSelectionCurrency(Currency mainFragCurrency) {
         currency = mainFragCurrency;
         if (getView() != null) {
@@ -116,9 +110,4 @@ public class RangeFragment extends Fragment {
         setRetainInstance(true);
     }
 
-    @Override
-    public void onDestroy() {
-        Log.i("CriptoMonitor", "RangeFragment(onDestroy)!!!!!!!!!!!");
-        super.onDestroy();
-    }
 }
