@@ -9,7 +9,9 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
+import java.util.Locale;
 
 //Класс адаптера списка, который отображает имя валюты и ее текущую цену
 public class ItemAdapter extends ArrayAdapter<Currency> {
@@ -20,6 +22,7 @@ public class ItemAdapter extends ArrayAdapter<Currency> {
     public ItemAdapter(Context context, ArrayList<Currency> arr) {
         super(context, R.layout.item_adapter, arr);
         selectionPosition = 0;
+
     }
 
     @Override
@@ -30,8 +33,10 @@ public class ItemAdapter extends ArrayAdapter<Currency> {
         if (convertView == null) {
             convertView = LayoutInflater.from(getContext()).inflate(R.layout.item_adapter, null);
         }
+        DecimalFormatSymbols otherSymbols = new DecimalFormatSymbols(Locale.getDefault());
+        otherSymbols.setDecimalSeparator('.');
+        DecimalFormat df = new DecimalFormat("0.0000000000", otherSymbols);
         // Заполняем адаптер
-        DecimalFormat df = new DecimalFormat("0.0000000000");
         ((TextView) convertView.findViewById(R.id.name)).setText(currency.getName());
         ((TextView) convertView.findViewById(R.id.cost)).setText(df.format(currency.getPrice()));
         ((TextView) convertView.findViewById(R.id.cost)).setFocusable(false);

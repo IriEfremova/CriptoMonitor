@@ -28,7 +28,7 @@ public class CheckAdapter extends ArrayAdapter<Currency> {
         }
 
         ((TextView) convertView.findViewById(R.id.name)).setText(currency.getName());
-        if(currency.getMinPrice() == -1.0)
+        if((currency.getMinPrice() == -1.0) && (currency.getMaxPrice() == -1.0))
             ((CheckBox) convertView.findViewById(R.id.on)).setChecked(false);
         else
             ((CheckBox) convertView.findViewById(R.id.on)).setChecked(true);

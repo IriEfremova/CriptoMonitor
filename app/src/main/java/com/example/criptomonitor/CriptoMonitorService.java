@@ -44,6 +44,7 @@ public class CriptoMonitorService extends Service {
     public final static String CRIPTOSERVICE_LIST = "CRIPTOSERVICE_LIST";
     public final static String CRIPTOSERVICE_CHANNEL = "CRIPTOSERVICE_CHANNEL";
     private final static String CHANNEL_ID = "com.example.criptomonitor";
+    private final static String GROUP_ID = "com.example.criptogroup";
     private final static int NOTIFICATION_ID = 1122;
     private final static int SERVICE_ID = 1122;
     public final static int TIME_RELOAD_MIN = 15000;
@@ -92,6 +93,7 @@ public class CriptoMonitorService extends Service {
     //отправляем приложению данные по всем валютам с веб-сервиса
     @Override
     public void onRebind(Intent intent) {
+        Log.i("CriptoMonitor", "CriptoMonitorService(onRebind)");
         super.onRebind(intent);
         getAllCurrencies();
     }
@@ -100,6 +102,7 @@ public class CriptoMonitorService extends Service {
     //отправляем приложению данные по всем валютам с веб-сервиса
     @Override
     public IBinder onBind(Intent intent) {
+        Log.i("CriptoMonitor", "CriptoMonitorService(onBind)");
         getAllCurrencies();
         return serviceBinder;
     }
@@ -108,34 +111,39 @@ public class CriptoMonitorService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
-        if(isForeground)
-            startForeground(SERVICE_ID, getNotification(null, 0.0, 0));
+        if (isForeground) {
+            Log.i("CriptoMonitor", "CriptoMonitorService(onStartCommand): startForeground");
+            startForeground(SERVICE_ID, notificationBuilder.build());
+        }
         isRunning = true;
         return START_NOT_STICKY;
     }
 
-    //При отсановке сервиса, перед остановкой, если нужно, убираем его из фона
+    //При остановке сервиса, перед остановкой, если нужно, убираем его из фона
     @Override
     public boolean stopService(Intent name) {
         Log.i("CriptoMonitor", "CriptoMonitorService(stopService)");
-        if(isForeground)
+        if (isForeground)
             stopForeground(true);
         isRunning = false;
         return super.stopService(name);
     }
 
-    //При уничтожении
+    //При уничтожении все почистим
     public void onDestroy() {
         super.onDestroy();
-        if(serviceTimer != null) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            notificationManager.deleteNotificationChannel(CHANNEL_ID);
+
+        if (serviceTimer != null) {
             serviceTimer.cancel();
             serviceTimer = null;
         }
-        if(serviceTimer != null)
+        if (serviceTimer != null)
             serviceTask = null;
-        if(retrofit == null)
+        if (retrofit == null)
             retrofit = null;
-        if(currenciesMonitoringList != null){
+        if (currenciesMonitoringList != null) {
             for (Currency curr : currenciesMonitoringList)
                 curr = null;
             currenciesMonitoringList = null;
@@ -148,23 +156,23 @@ public class CriptoMonitorService extends Service {
     }
 
     //Методы, возвращающие признаки работы сервиса (запущен или в фоновом режиме)
-    public boolean isServiceRunning(){
+    public boolean isServiceRunning() {
         return isRunning;
     }
-    public boolean isServiceForeground(){
+
+    public boolean isServiceForeground() {
         return isForeground;
     }
 
     //Устанавливаем режим работы (фоновый или простой)
-    public void setServiceForeground(boolean isForeground){
+    public void setServiceForeground(boolean isForeground) {
         this.isForeground = isForeground;
-        if(isForeground) {
+        if (isForeground) {
+            Log.i("CriptoMonitor", "CriptoMonitorService(setServiceForeground): startForeground");
+            startForeground(SERVICE_ID, notificationBuilder.build());
+        } else {
             Log.i("CriptoMonitor", "CriptoMonitorService(setServiceForeground): stopForeground");
             stopForeground(true);
-        }
-        else {
-            Log.i("CriptoMonitor", "CriptoMonitorService(setServiceForeground): startForeground");
-            startForeground(SERVICE_ID, getNotification(null, 0.0, 0));
         }
     }
 
@@ -172,6 +180,7 @@ public class CriptoMonitorService extends Service {
     public int getIntervalReload() {
         return intervalReload;
     }
+
     public void setIntervalReload(int millisec) {
         if (millisec < TIME_RELOAD_MIN)
             intervalReload = TIME_RELOAD_MIN;
@@ -206,8 +215,11 @@ public class CriptoMonitorService extends Service {
             }
             notificationBuilder = new NotificationCompat.Builder(this, CRIPTOSERVICE_CHANNEL);
         }
-        notificationBuilder.setSmallIcon(R.drawable.ic_cripto_notif ).setContentTitle("CriptoMonitor");
+        Intent resultIntent = new Intent(this, MainActivity.class);
+        resultIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent resultPendingIntent = PendingIntent.getActivity(this, 0, resultIntent, 0);
 
+        notificationBuilder.setSmallIcon(R.drawable.ic_cripto_notif).setContentIntent(resultPendingIntent).setContentTitle("CriptoMonitor").setGroup(GROUP_ID).setGroupSummary(true);
         //Настраиваем таймер по умолчанию и запускаем задание
         intervalReload = TIME_RELOAD_MIN;
         serviceTimer = new Timer();
@@ -219,13 +231,16 @@ public class CriptoMonitorService extends Service {
     public void isReachedRangeCurrencies() {
         if (currenciesMonitoringList != null && currenciesMonitoringList.size() > 0) {
             for (Currency curr : currenciesMonitoringList) {
+                Log.i("CriptoMonitor", "CriptoMonitorService(isReachedRangeCurrencies): " + curr.getName() + "  " + currenciesMonitoringList.indexOf(curr));
                 if (curr.getPrice() >= curr.getMaxPrice()) {
-                    Log.i("CriptoMonitor", "CriptoMonitorService(onChangeRangeCurrencies)");
-                    notificationManager.notify(NOTIFICATION_ID, getNotification(curr.getName(), curr.getMaxPrice(), 1));
+                    String str = String.format("Валюта %s достигла верхней границы %f", curr.getName(), curr.getPrice());
+                    Log.i("CriptoMonitor", "CriptoMonitorService(isReachedRangeCurrencies): " + NOTIFICATION_ID + 1 + currenciesMonitoringList.indexOf(curr) + "   " + str);
+                    notificationManager.notify(GROUP_ID, NOTIFICATION_ID + 1 + currenciesMonitoringList.indexOf(curr), notificationBuilder.setContentText(str).setGroupSummary(false).build());
                 }
                 else if (curr.getPrice() <= curr.getMinPrice()) {
-                    Log.i("CriptoMonitor", "CriptoMonitorService(onChangeRangeCurrencies)");
-                    notificationManager.notify(NOTIFICATION_ID, getNotification(curr.getName(), curr.getMinPrice(), 0));
+                    String str = String.format("Валюта %s достигла нижней границы %f", curr.getName(), curr.getPrice());
+                    Log.i("CriptoMonitor", "CriptoMonitorService(isReachedRangeCurrencies): " + NOTIFICATION_ID + 1 + currenciesMonitoringList.indexOf(curr) + "   " + str);
+                    notificationManager.notify(GROUP_ID, NOTIFICATION_ID + 1 + currenciesMonitoringList.indexOf(curr), notificationBuilder.setContentText(str).setGroupSummary(false).build());
                 }
             }
         }
@@ -260,23 +275,6 @@ public class CriptoMonitorService extends Service {
                 sendBroadcast(intent);
             }
         });
-    }
-
-    //Формируем нужное уведомление
-    public Notification getNotification(String name, double price, int typeBorder) {
-        Intent resultIntent = new Intent(this, MainActivity.class);
-        PendingIntent resultPendingIntent = PendingIntent.getActivity(this, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-        if (name == null)
-            return notificationBuilder.setContentIntent(resultPendingIntent).build();
-        else {
-            String str = "Валюта достигла границы (неизвестный тип границы)...";
-            if (typeBorder == 0)
-                str = String.format("Валюта %s достигла нижней границы %f", name, price);
-            else if (typeBorder == 1)
-                str = String.format("Валюта %s достигла верхней границы %f", name, price);
-            return notificationBuilder.setContentText(str).build();
-        }
     }
 
     //Задание сервису, выполняется через intervalReload

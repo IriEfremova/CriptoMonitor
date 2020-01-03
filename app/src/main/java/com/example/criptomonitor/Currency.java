@@ -34,24 +34,13 @@ public class Currency implements Parcelable {
         this.maxPrice = -1.0;
     }
 
-    protected Currency(Parcel in) {
-        this.name = in.readString();
-        this.price = in.readDouble();
-        this.minPrice = in.readDouble();
-        this.maxPrice = in.readDouble();
+    //Метод заменяет данные текущего объекта на данные входного
+    public void replace(Currency currency) {
+        this.name = currency.name;
+        this.price = currency.price;
+        this.minPrice = currency.minPrice;
+        this.maxPrice = currency.maxPrice;
     }
-
-    public static final Creator<Currency> CREATOR = new Creator<Currency>() {
-        @Override
-        public Currency createFromParcel(Parcel in) {
-            return new Currency(in);
-        }
-
-        @Override
-        public Currency[] newArray(int size) {
-            return new Currency[size];
-        }
-    };
 
     //Наименование валюты
     public void setName(String value){ this.name = value; }
@@ -89,10 +78,31 @@ public class Currency implements Parcelable {
         return false;
     }
 
+    //Нижеследующие методы для поддержки parcelabel-интерфейса
+    protected Currency(Parcel in) {
+        this.name = in.readString();
+        this.price = in.readDouble();
+        this.minPrice = in.readDouble();
+        this.maxPrice = in.readDouble();
+    }
+
+    public static final Creator<Currency> CREATOR = new Creator<Currency>() {
+        @Override
+        public Currency createFromParcel(Parcel in) {
+            return new Currency(in);
+        }
+
+        @Override
+        public Currency[] newArray(int size) {
+            return new Currency[size];
+        }
+    };
+
     @Override
     public int describeContents() {
         return 0;
     }
+
 
     @Override
     public void writeToParcel(Parcel parcel, int i) {

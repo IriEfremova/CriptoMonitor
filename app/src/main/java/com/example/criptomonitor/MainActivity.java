@@ -11,6 +11,7 @@ import android.content.ServiceConnection;
 import android.content.res.Configuration;
 import android.os.Build;
 import android.os.IBinder;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -35,6 +36,8 @@ public class MainActivity extends AppCompatActivity implements DataExchanger {
     private CriptoMonitorService criptoService;
     //Флаг привязки сервиса к активности
     private boolean isServiceBound = false;
+    //Флаг привязки ресивера к сервису
+    private boolean isResieverRegister = false;
 
     //Намерение для сервиса
     private Intent intentService;
@@ -49,6 +52,7 @@ public class MainActivity extends AppCompatActivity implements DataExchanger {
             criptoService = binder.getService();
             isServiceBound = true;
         }
+
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             isServiceBound = false;
@@ -100,17 +104,24 @@ public class MainActivity extends AppCompatActivity implements DataExchanger {
                 public void onReceive(Context context, Intent intent) {
                     Log.i("CriptoMonitor", "BroadcastReceiver(onReceive)");
                     //Если пришла ошибка, то сообщаем об этом
-                    if (intent.hasExtra(CriptoMonitorService.CRIPTOSERVICE_ERROR))
-                        showAlertDialog("Ошибка передачи данных списка валют с сервера = " + intent.getStringExtra(CriptoMonitorService.CRIPTOSERVICE_ERROR));
+                    if (intent.hasExtra(CriptoMonitorService.CRIPTOSERVICE_ERROR)) {
+                        //Если есть действующее соединение с интернетом, то регистрируем ресивер, иначе сообшаем о проблеме
+                        if (isInternetConnect()) {
+                            showAlertDialog("Ошибка передачи данных списка валют с сервера = " + intent.getStringExtra(CriptoMonitorService.CRIPTOSERVICE_ERROR));
+                        } else {
+                            showAlertDialog("Нет подключения к сети Internet...");
+                        }
+                    }
                     //Если получили список всех валют с ценами, то отправляем его в главный фрагмент и обновляем данные по отслеживаемым валютам
                     if (intent.hasExtra(CriptoMonitorService.CRIPTOSERVICE_LIST)) {
                         ArrayList<Currency> list = intent.getParcelableArrayListExtra(CriptoMonitorService.CRIPTOSERVICE_LIST);
                         mainFragment.setListAllCurrencies(list);
                         mainFragment.updateMonitoringFromDB(criptoService.getCurrenciesMonitoringList());
                         criptoService.setIntervalReload(mainFragment.getIntervalReloadService());
+                        criptoService.setServiceForeground(mainFragment.getServiceStartForeground());
                     }
                     //Если уже заполнили список всех валют, то просто обновляем данные по отслеживаемым валютам
-                    if (mainFragment.getListAllCurrencies() != null) {
+                    if (mainFragment != null && mainFragment.getListAllCurrencies() != null) {
                         mainFragment.updateListAdapter();
                     }
                 }
@@ -118,33 +129,41 @@ public class MainActivity extends AppCompatActivity implements DataExchanger {
         }
     }
 
-
     @Override
     protected void onStart() {
         super.onStart();
-        //Если есть действующее соединение с интернетом, то регистрируем ресивер, иначе сообшаем о проблеме
-        if (isInternetConnect()) {
+        Log.i("CriptoMonitor", "MainActivity(onStart)");
+        if (serviceReciever != null && isResieverRegister == false) {
             IntentFilter filter = new IntentFilter(CriptoMonitorService.CRIPTOSERVICE_ACTION);
             registerReceiver(serviceReciever, filter);
-        } else {
-            showAlertDialog("Нет подключения к сети Internet...");
+            isResieverRegister = true;
         }
         //Если версия не поддерживает фрагменты, то сообщаем о проблеме
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.DONUT) {
-            showAlertDialog("Невозможно запустить программу на версии Android меньше 4.0( Donut)...");
+            showAlertDialog("Невозможно запустить программу на версии Android меньше 4.0( Donut)");
         }
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        //Отсоединяем ресивер
-        unregisterReceiver(serviceReciever);
+        if (isResieverRegister) {
+            //Отсоединяем ресивер
+            unregisterReceiver(serviceReciever);
+            isResieverRegister = false;
+        }
     }
 
     //Создаем меню
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.DONUT) {
+            MenuItem item = menu.findItem(R.id.action_new);
+            item.setEnabled(false);
+            item = menu.findItem(R.id.action_settings);
+            item.setEnabled(false);
+        }
+
         getMenuInflater().inflate(R.menu.main_menu, menu);
         return super.onCreateOptionsMenu(menu);
     }
@@ -156,172 +175,172 @@ public class MainActivity extends AppCompatActivity implements DataExchanger {
         switch (id) {
             //Если выбрали пункт "Add new Currencies"
             case R.id.action_new:
-                setFragAdd();
+                if (addFragment == null || addFragment.isHidden() == true)
+                    setSubFragment(DataExchanger.LAYOUT_ADD);
                 return true;
             //Если выбрали пункт "Stop Service"
             case R.id.action_settings:
-                setFragSettings();
+                if (settingsFragment == null || settingsFragment.isHidden() == true)
+                    setSubFragment(DataExchanger.LAYOUT_SETTINGS);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
+    @Override
     //Метод, отвечающий за настройку параметров лэйаутов для фрагментов
     public void updateFragLayout(int mode) {
-        Log.i("CriptoMonitor", "MainActivity(updateFragLayout)11");
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE && mode != DataExchanger.LAYOUT_ALL)
+            return;
+
         FrameLayout frm1 = findViewById(R.id.fragLayout1);
         FrameLayout frm2 = findViewById(R.id.fragLayout2);
-        Log.i("CriptoMonitor", "MainActivity(updateFragLayout)22");
-        //Для главного фрагмента весь экран отдаем под первый лэйаут в портретной ориентации
+        //Для портретной ориентации весь экран отдаем под первый лэйаут
         if (mode == DataExchanger.LAYOUT_MAIN) {
-            Log.i("CriptoMonitor", "MainActivity(updateFragLayout)33");
             frm1.setLayoutParams(new LinearLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT, 0));
-            frm2.setLayoutParams(new LinearLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT, 0));
-            Log.i("CriptoMonitor", "MainActivity(updateFragLayout)44");
-        }
-        //Для фрагмента конкретной валюты весь экран отдаем под второй лэйаут в портретной ориентации
-        if (mode == DataExchanger.LAYOUT_RANGE) {
-            frm1.setLayoutParams(new LinearLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT, 1));
             frm2.setLayoutParams(new LinearLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT, 0));
         }
         //Если ориентация альбомная, то экран делим пополам для обоих лэйаутов
-        if (mode == DataExchanger.LAYOUT_ALL) {
+        else if (mode == DataExchanger.LAYOUT_ALL) {
             frm1.setLayoutParams(new LinearLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT, 1));
             frm2.setLayoutParams(new LinearLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT, 1));
+        } else {
+            frm1.setLayoutParams(new LinearLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT, 1));
+            frm2.setLayoutParams(new LinearLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT, 0));
         }
     }
 
-    //Метод, отвечающий за отображение фрагмента с настройками сервиса
-    private void setFragSettings() {
-        Log.i("CriptoMonitor", "MainActivity(setFragSettings)");
+    //Метод, отвечающий за отображение дочернего фрагмента
+    private void setSubFragment(int typeLayout) {
+        Log.i("CriptoMonitor", "MainActivity(setSubFragment) " + getSupportFragmentManager().getBackStackEntryCount());
+        Fragment fragment = null;
+        String nameFrag = "";
+
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-        //Если фрагмент еще не создан, то без стека добавляем его и опять скрываем
-        //чтобы при нажатии кнопки назад не было пустого фрагмента
-        if (settingsFragment == null) {
-            settingsFragment = new ServiceSettigsFragment();
-            transaction.add(R.id.fragLayout1, settingsFragment, "settingsFragment");
-            transaction.hide(settingsFragment);
+        switch (typeLayout) {
+            case DataExchanger.LAYOUT_ADD: {
+                if (addFragment == null) {
+                    Log.i("CriptoMonitor", "MainActivity(setSubFragment):create new addfragment ");
+                    addFragment = new AddFragment();
+                }
+                fragment = addFragment;
+                nameFrag = "addFragment";
+                break;
+            }
+            case DataExchanger.LAYOUT_RANGE: {
+                if (rangeFragment == null)
+                    rangeFragment = new RangeFragment();
+                fragment = rangeFragment;
+                nameFrag = "rangeFragment";
+                break;
+            }
+            case DataExchanger.LAYOUT_SETTINGS: {
+                if (settingsFragment == null)
+                    settingsFragment = new ServiceSettigsFragment();
+                fragment = settingsFragment;
+                nameFrag = "settingsFragment";
+                break;
+            }
+        }
+
+        if (fragment.isAdded() == false) {
+            Log.i("CriptoMonitor", "MainActivity(setSubFragment): added");
+            transaction.add(R.id.fragLayout2, fragment, nameFrag);
+            transaction.hide(fragment);
             transaction.commit();
             transaction = getSupportFragmentManager().beginTransaction();
         }
 
-        //Уже в стеке скрываем главный фрагмент и фрагмент валюты и отображаем с настройками
+        //Уже в стеке отображаем нужный фрагмент
         transaction.addToBackStack(null);
-        if (mainFragment != null && mainFragment.isVisible()) {
-            transaction.hide(mainFragment);
+
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+            updateFragLayout(DataExchanger.LAYOUT_RANGE);
+            if (mainFragment.isHidden() == false)
+                transaction.hide(mainFragment);
         }
-        transaction.show(settingsFragment);
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            if(rangeFragment != null) {
-                updateFragLayout(DataExchanger.LAYOUT_MAIN);
-                transaction.hide(rangeFragment);
+
+        switch (typeLayout) {
+            case DataExchanger.LAYOUT_ADD: {
+                if (rangeFragment != null && rangeFragment.isHidden() == false) {
+                    transaction.hide(rangeFragment);
+                }
+                if (settingsFragment != null && settingsFragment.isHidden() == false)
+                    transaction.hide(settingsFragment);
+                break;
+            }
+            case DataExchanger.LAYOUT_RANGE: {
+                if (addFragment != null && addFragment.isHidden() == false)
+                    transaction.hide(addFragment);
+                if (settingsFragment != null && settingsFragment.isHidden() == false)
+                    transaction.hide(settingsFragment);
+                break;
+            }
+            case DataExchanger.LAYOUT_SETTINGS: {
+                if (addFragment != null && addFragment.isHidden() == false)
+                    transaction.hide(addFragment);
+                if (rangeFragment != null && rangeFragment.isHidden() == false)
+                    transaction.hide(rangeFragment);
+                break;
             }
         }
-        transaction.commit();
-    }
-
-    //Метод, отвечающий за возврат главного фрагмента из дочернего
-    //пока без стека скрываем дочерний и отображаем главный фрагмент
-    private void setMainFromFragment() {
-        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-        if (addFragment != null) {
-            if (addFragment.isHidden() == false)
-                transaction.hide(addFragment);
+        transaction.show(fragment);
+        if(typeLayout == DataExchanger.LAYOUT_ADD){
+            ((AddFragment) fragment).updateListAdapter();
         }
-        if (settingsFragment != null) {
-            if (settingsFragment.isHidden() == false)
-                transaction.hide(settingsFragment);
-        }
-        if (mainFragment.isHidden())
-            transaction.show(mainFragment);
         transaction.commit();
+        Log.i("CriptoMonitor", "MainActivity(setSubFragment) end" + getSupportFragmentManager().getBackStackEntryCount());
     }
-
 
     //Первоначальное распределение фрагментов по главной активности
     private void setFragMain() {
-        Log.i("CriptoMonitor", "MainActivity(setFragMain)");
+        Log.i("CriptoMonitor", "MainActivity(setFragMain) " + getSupportFragmentManager().getBackStackEntryCount());
+        if (getSupportFragmentManager().getBackStackEntryCount() > 0)
+            getSupportFragmentManager().popBackStack();
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-
-        //Если дочерние активности уже созданы, то при необходимости отображаем их
-        //такое возможно при смене ориентации экрана
-        if (addFragment != null) {
-            if (addFragment.isHidden())
-                transaction.hide(addFragment);
-            else
-                transaction.show(addFragment);
-        }
-
-        if (settingsFragment != null) {
-            if (settingsFragment.isHidden())
-                transaction.hide(settingsFragment);
-            else
-                transaction.show(settingsFragment);
-        }
-
         //Обрабатываем главный фрагмент, если не создан - создаем, иначе просто обрабатываем свойство видимости
         if (mainFragment == null) {
             mainFragment = new MainFragment();
             transaction.add(R.id.fragLayout1, mainFragment, "mainFragment");
-        } else {
-            if (mainFragment.isHidden())
-                transaction.hide(mainFragment);
-            else
-                transaction.show(mainFragment);
-        }
+        } else
+            transaction.show(mainFragment);
 
-        //Отрабатываем альбомную ориентацию, добавляем если нужно фрагмент с инфой о валюте
-        if (mainFragment.isHidden() == false) {
-            if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                if (mainFragment != null && mainFragment.getSelectionCurrency() != null) {
-                    updateFragLayout(DataExchanger.LAYOUT_ALL);
-                    if (rangeFragment == null) {
-                        rangeFragment = new RangeFragment();
-                        transaction.add(R.id.fragLayout2, rangeFragment, "rangeFragment");
-                    } else
-                        transaction.show(rangeFragment);
-                } else {
-                    updateFragLayout(DataExchanger.LAYOUT_MAIN);
-                    if (rangeFragment != null && rangeFragment.isHidden())
-                        transaction.hide(rangeFragment);
-                }
-            }
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+            updateFragLayout(DataExchanger.LAYOUT_MAIN);
+            if (rangeFragment != null && rangeFragment.isHidden() == false)
+                transaction.hide(rangeFragment);
+        } else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            updateFragLayout(DataExchanger.LAYOUT_ALL);
+            if (rangeFragment == null) {
+                rangeFragment = new RangeFragment();
+                transaction.add(R.id.fragLayout2, rangeFragment, "rangeFragment");
+            } else
+                transaction.show(rangeFragment);
         }
-
         transaction.commit();
+
+        if (addFragment != null && addFragment.isHidden() == false) {
+            setSubFragment(DataExchanger.LAYOUT_ADD);
+            Log.i("CriptoMonitor", "MainActivity(setFragMain): add fragment ");
+        }
+        else if (settingsFragment != null && settingsFragment.isHidden() == false)
+            setSubFragment(DataExchanger.LAYOUT_SETTINGS);
+
     }
 
-    //Установка фрагмента со списоком всех возможных валют
-    private void setFragAdd() {
-        Log.i("CriptoMonitor", "MainActivity(setFragAdd)");
-        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-        //Без стека при необходимости создаем фрагмент и добавляем его
-        //чтобы при нажатии кнопки назад не появлялся пустой фрагмент
-        if (addFragment == null) {
-            addFragment = new AddFragment();
-            transaction.add(R.id.fragLayout1, addFragment, "addFragment");
-            transaction.hide(addFragment);
-            transaction.commit();
-            transaction = getSupportFragmentManager().beginTransaction();
-        }
-        //И в стеке
-        transaction.addToBackStack(null);
-        if (mainFragment != null && mainFragment.isVisible())
-            transaction.hide(mainFragment);
-        transaction.show(addFragment);
-
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            updateFragLayout(DataExchanger.LAYOUT_MAIN);
-            transaction.hide(rangeFragment);
-        }
-        transaction.commit();
+    @Override
+    public void updateRangeFragment() {
+        if (rangeFragment == null || rangeFragment.isVisible() == false)
+            setSubFragment(DataExchanger.LAYOUT_RANGE);
+        changeSelectionCurrency();
     }
 
     @Override
     protected void onDestroy() {
         Log.i("CriptoMonitor", "MainActivity(onDestroy)");
         super.onDestroy();
+
         if (isServiceBound) {
             Log.i("CriptoMonitor", "MainActivity(onDestroy): unbindService");
             unbindService(serviceConnection);
@@ -343,12 +362,15 @@ public class MainActivity extends AppCompatActivity implements DataExchanger {
 
     @Override
     public void setServerSettings(int time) {
-        if (criptoService != null && criptoService.isServiceRunning())
+        if (criptoService != null && criptoService.isServiceRunning()) {
             criptoService.setIntervalReload(time);
+            mainFragment.setServiceInterval(time);
+        }
     }
 
     @Override
     public ArrayList<Currency> getAllCurrencies() {
+        Log.i("CriptoMonitor", "MainActivity(getAllCurrencies): count = " + mainFragment.getListAllCurrencies().size());
         return mainFragment.getListAllCurrencies();
     }
 
@@ -366,38 +388,43 @@ public class MainActivity extends AppCompatActivity implements DataExchanger {
                 }
             }
         } else
-            Log.i("CriptoMonitor", "MainActivity(setCheckCurrencies): not bind service");
+            Log.i("CriptoMonitor", "MainActivity(deleteCurrency): not bind service");
 
     }
 
     @Override
     public void setCheckCurrencies(ArrayList<Currency> listCurrencies) {
-        ArrayList<Currency> listService = null;
-        if (isServiceBound) {
-            listService = criptoService.getCurrenciesMonitoringList();
-            Iterator it = listService.iterator();
-            while (it.hasNext()) {
-                Currency curr = (Currency) it.next();
-                if (listCurrencies.contains(curr) == false) {
-                    it.remove();
-                    mainFragment.deleteCurrenyFromList(curr);
+        if (listCurrencies == null) {
+            getSupportFragmentManager().popBackStack();
+        } else {
+
+            ArrayList<Currency> listService = null;
+            if (isServiceBound) {
+                listService = criptoService.getCurrenciesMonitoringList();
+                Iterator it = listService.iterator();
+                while (it.hasNext()) {
+                    Currency curr = (Currency) it.next();
+                    if (listCurrencies.contains(curr) == false) {
+                        it.remove();
+                        mainFragment.deleteCurrenyFromList(curr);
+                    }
                 }
-            }
 
-            for (Currency curr : listCurrencies) {
-                if (listService.contains(curr) == false) {
-                    //Добавляем новую валюту в список для отслеживания. Границы раздвигаем от текущей цены на 5%
-                    Currency newCurr = new Currency(curr.getName(), curr.getPrice(), curr.getPrice() * 0.95, curr.getPrice() * 1.05);
-                    listService.add(newCurr);
-                    mainFragment.insertCurrencyInList(newCurr);
+                for (Currency curr : listCurrencies) {
+                    if (listService.contains(curr) == false) {
+                        //Добавляем новую валюту в список для отслеживания. Границы  раздвигаем от текущей цены на 5%
+                        Currency newCurr = new Currency(curr.getName(), curr.getPrice(), curr.getPrice() * 0.95, curr.getPrice() * 1.05);
+                        listService.add(newCurr);
+                        mainFragment.insertCurrencyInList(newCurr);
+                    }
                 }
-            }
 
-        } else
-            Log.i("CriptoMonitor", "MainActivity(setCheckCurrencies): not bind service");
+            } else
+                Log.i("CriptoMonitor", "MainActivity(setCheckCurrencies): not bind service");
 
-        setMainFromFragment();
-        mainFragment.updateListAdapter();
+            getSupportFragmentManager().popBackStack();
+            mainFragment.updateListAdapter();
+        }
     }
 
     public int isServiceStart() {
@@ -414,43 +441,23 @@ public class MainActivity extends AppCompatActivity implements DataExchanger {
             return false;
     }
 
-    public void setServiceStartForeground(boolean isForeground) {
+    public void setServiceStartForeground(int isForeground) {
+        mainFragment.setServiceStartForeground(isForeground);
         if (criptoService != null && criptoService.isServiceRunning())
-            criptoService.setServiceForeground(isForeground);
+            criptoService.setServiceForeground(isForeground == 0 ? false : true);
         else
-            Log.i("CriptoMonitor", "MainActivity(setCheckCurrencies): service is not running");
-    }
-
-    @Override
-    public void updateRange() {
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-            FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-            if (rangeFragment == null) {
-                rangeFragment = new RangeFragment();
-                transaction.add(R.id.fragLayout2, rangeFragment, "rangeFragment");
-                transaction.hide(rangeFragment);
-                transaction.commit();
-                transaction = getSupportFragmentManager().beginTransaction();
-            }
-            transaction.addToBackStack(null);
-            transaction.hide(mainFragment);
-            updateFragLayout(DataExchanger.LAYOUT_RANGE);
-            transaction.show(rangeFragment);
-            changeSelectionCurrency();
-            transaction.commit();
-        }
+            Log.i("CriptoMonitor", "MainActivity(setServiceStartForeground): service is not running");
     }
 
     @Override
     public void changeSelectionCurrency() {
-        if (rangeFragment != null) {
+        if (rangeFragment != null)
             rangeFragment.setSelectionCurrency(mainFragment.getSelectionCurrency());
-        }
     }
 
     //Метод для отображения диалогового окна с сообщением
     public void showAlertDialog(String message) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(getApplicationContext());
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("CriptoMonitor").setMessage(message).setCancelable(false).setNegativeButton("ОК",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
@@ -461,5 +468,16 @@ public class MainActivity extends AppCompatActivity implements DataExchanger {
         alert.show();
     }
 
+    public void updateCurrency(Currency currency) {
+        if(currency == null) {
+            //Возвращаемся назад, ели портретная ориентация
+            if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
+                getSupportFragmentManager().popBackStack();
+        }else {
+            if (mainFragment != null) {
+                mainFragment.updateCurrency(currency);
+            }
+        }
+    }
 }
 
