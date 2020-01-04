@@ -134,8 +134,10 @@ public class RangeFragment extends Fragment {
             if (tvName != null) {
                 tvName.setText(currency.getName());
                 tvPrice.setText(df.format(currency.getPrice()));
-                etMax.setText(df.format(currency.getMaxPrice()));
-                etMin.setText(df.format(currency.getMinPrice()));
+                if(etMax.getText() == null || etMax.getText().equals(""))
+                    etMax.setText(df.format(currency.getMaxPrice()));
+                if(etMin.getText() == null || etMin.getText().equals(""))
+                    etMin.setText(df.format(currency.getMinPrice()));
             }
         }
     }

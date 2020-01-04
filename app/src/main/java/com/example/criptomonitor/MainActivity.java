@@ -286,7 +286,7 @@ public class MainActivity extends AppCompatActivity implements DataExchanger {
             }
         }
         transaction.show(fragment);
-        if(typeLayout == DataExchanger.LAYOUT_ADD){
+        if (typeLayout == DataExchanger.LAYOUT_ADD) {
             ((AddFragment) fragment).updateListAdapter();
         }
         transaction.commit();
@@ -323,8 +323,7 @@ public class MainActivity extends AppCompatActivity implements DataExchanger {
         if (addFragment != null && addFragment.isHidden() == false) {
             setSubFragment(DataExchanger.LAYOUT_ADD);
             Log.i("CriptoMonitor", "MainActivity(setFragMain): add fragment ");
-        }
-        else if (settingsFragment != null && settingsFragment.isHidden() == false)
+        } else if (settingsFragment != null && settingsFragment.isHidden() == false)
             setSubFragment(DataExchanger.LAYOUT_SETTINGS);
 
     }
@@ -416,6 +415,9 @@ public class MainActivity extends AppCompatActivity implements DataExchanger {
                         Currency newCurr = new Currency(curr.getName(), curr.getPrice(), curr.getPrice() * 0.95, curr.getPrice() * 1.05);
                         listService.add(newCurr);
                         mainFragment.insertCurrencyInList(newCurr);
+                        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE && rangeFragment != null && rangeFragment.isHidden()) {
+                            getSupportFragmentManager().beginTransaction().show(rangeFragment).commit();
+                        }
                     }
                 }
 
@@ -451,8 +453,12 @@ public class MainActivity extends AppCompatActivity implements DataExchanger {
 
     @Override
     public void changeSelectionCurrency() {
-        if (rangeFragment != null)
-            rangeFragment.setSelectionCurrency(mainFragment.getSelectionCurrency());
+        if (rangeFragment != null) {
+            if (mainFragment.getSelectionCurrency() == null)
+                getSupportFragmentManager().beginTransaction().hide(rangeFragment).commit();
+            else
+                rangeFragment.setSelectionCurrency(mainFragment.getSelectionCurrency());
+        }
     }
 
     //Метод для отображения диалогового окна с сообщением
@@ -469,11 +475,11 @@ public class MainActivity extends AppCompatActivity implements DataExchanger {
     }
 
     public void updateCurrency(Currency currency) {
-        if(currency == null) {
+        if (currency == null) {
             //Возвращаемся назад, ели портретная ориентация
-            if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
+            if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
                 getSupportFragmentManager().popBackStack();
-        }else {
+        } else {
             if (mainFragment != null) {
                 mainFragment.updateCurrency(currency);
             }

@@ -235,9 +235,10 @@ public class CriptoMonitorService extends Service {
                 if (curr.getPrice() >= curr.getMaxPrice()) {
                     String str = String.format("Валюта %s достигла верхней границы %f", curr.getName(), curr.getPrice());
                     Log.i("CriptoMonitor", "CriptoMonitorService(isReachedRangeCurrencies): " + NOTIFICATION_ID + 1 + currenciesMonitoringList.indexOf(curr) + "   " + str);
+
                     notificationManager.notify(GROUP_ID, NOTIFICATION_ID + 1 + currenciesMonitoringList.indexOf(curr), notificationBuilder.setContentText(str).setGroupSummary(false).build());
-                }
-                else if (curr.getPrice() <= curr.getMinPrice()) {
+
+                } else if (curr.getPrice() <= curr.getMinPrice()) {
                     String str = String.format("Валюта %s достигла нижней границы %f", curr.getName(), curr.getPrice());
                     Log.i("CriptoMonitor", "CriptoMonitorService(isReachedRangeCurrencies): " + NOTIFICATION_ID + 1 + currenciesMonitoringList.indexOf(curr) + "   " + str);
                     notificationManager.notify(GROUP_ID, NOTIFICATION_ID + 1 + currenciesMonitoringList.indexOf(curr), notificationBuilder.setContentText(str).setGroupSummary(false).build());
