@@ -27,12 +27,14 @@ public class CheckAdapter extends ArrayAdapter<Currency> {
             convertView = LayoutInflater.from(getContext()).inflate(R.layout.check_adapter, null);
         }
 
+        //Если у валюты границы неопределены, то она не была выбрана для мониторинга, ей не ставим флажок
         ((TextView) convertView.findViewById(R.id.name)).setText(currency.getName());
         if((currency.getMinPrice() == -1.0) && (currency.getMaxPrice() == -1.0))
             ((CheckBox) convertView.findViewById(R.id.on)).setChecked(false);
         else
             ((CheckBox) convertView.findViewById(R.id.on)).setChecked(true);
 
+        //На выбор строки обновляем границы, чтобы отметить, что валюта уже выбрана
         View.OnClickListener chkListener = new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -51,7 +53,8 @@ public class CheckAdapter extends ArrayAdapter<Currency> {
         return convertView;
     }
 
-    public ArrayList<Currency> getCheckCurrencies() {
+    //Метод, возвращающий список выбранных валют
+    ArrayList<Currency> getCheckCurrencies() {
         ArrayList<Currency> list = new ArrayList<Currency>();
         for(int i = 0; i < getCount(); i++){
             if (getItem(i).getMaxPrice() != -1.0)

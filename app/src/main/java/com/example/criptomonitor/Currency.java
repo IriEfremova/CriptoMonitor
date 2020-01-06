@@ -62,11 +62,7 @@ public class Currency implements Parcelable {
     //Получаем нижнюю цену для мониторинга
     public double getMaxPrice(){ return this.maxPrice; }
 
-    public void clearMinMaxPrice(){
-        this.minPrice = -1.0;
-        this.maxPrice = -1.0;
-    }
-
+    //Переопределяем метод для сравнения объектов, чтобы сравнение было только по наименованию
     @Override
     public boolean equals(Object obj) {
         if (obj == this)

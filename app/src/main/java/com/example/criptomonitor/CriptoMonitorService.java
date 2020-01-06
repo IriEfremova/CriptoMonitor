@@ -67,6 +67,8 @@ public class CriptoMonitorService extends Service {
 
     //Список валют для отслеживания
     private ArrayList<Currency> currenciesMonitoringList;
+    //Массив для отслеживания отправленных уведомлений
+    private ArrayList<Double> notifications;
 
     //Объекты для работы с уведомлениями
     private NotificationManager notificationManager;
@@ -130,11 +132,13 @@ public class CriptoMonitorService extends Service {
     }
 
     //При уничтожении все почистим
+    @Override
     public void onDestroy() {
         super.onDestroy();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             notificationManager.deleteNotificationChannel(CHANNEL_ID);
-
+        notifications.clear();
+        notifications = null;
         if (serviceTimer != null) {
             serviceTimer.cancel();
             serviceTimer = null;
@@ -199,6 +203,7 @@ public class CriptoMonitorService extends Service {
     public void onCreate() {
         super.onCreate();
         currenciesMonitoringList = new ArrayList<Currency>();
+        notifications = new ArrayList<Double>();
 
         //Инициализируем класс библиотеки для работы с веб-сервисом
         retrofit = new Retrofit.Builder().baseUrl(BASE_URL).addConverterFactory(GsonConverterFactory.create()).build();
@@ -230,18 +235,20 @@ public class CriptoMonitorService extends Service {
     //Метод для проверки достижения границ
     public void isReachedRangeCurrencies() {
         if (currenciesMonitoringList != null && currenciesMonitoringList.size() > 0) {
-            for (Currency curr : currenciesMonitoringList) {
-                Log.i("CriptoMonitor", "CriptoMonitorService(isReachedRangeCurrencies): " + curr.getName() + "  " + currenciesMonitoringList.indexOf(curr));
+            for (int i = 0; i < currenciesMonitoringList.size(); i++) {
+                Currency curr = currenciesMonitoringList.get(i);
                 if (curr.getPrice() >= curr.getMaxPrice()) {
-                    String str = String.format("Валюта %s достигла верхней границы %f", curr.getName(), curr.getPrice());
-                    Log.i("CriptoMonitor", "CriptoMonitorService(isReachedRangeCurrencies): " + NOTIFICATION_ID + 1 + currenciesMonitoringList.indexOf(curr) + "   " + str);
-
-                    notificationManager.notify(GROUP_ID, NOTIFICATION_ID + 1 + currenciesMonitoringList.indexOf(curr), notificationBuilder.setContentText(str).setGroupSummary(false).build());
-
+                    String str = String.format("Валюта %s достигла верхней границы %f", curr.getName(), curr.getMaxPrice());
+                    if (notifications.get(i) != curr.getMaxPrice()) {
+                        notifications.set(i, curr.getMaxPrice());
+                        notificationManager.notify(GROUP_ID, NOTIFICATION_ID + 1 + i, notificationBuilder.setContentText(str).setGroupSummary(false).build());
+                    }
                 } else if (curr.getPrice() <= curr.getMinPrice()) {
-                    String str = String.format("Валюта %s достигла нижней границы %f", curr.getName(), curr.getPrice());
-                    Log.i("CriptoMonitor", "CriptoMonitorService(isReachedRangeCurrencies): " + NOTIFICATION_ID + 1 + currenciesMonitoringList.indexOf(curr) + "   " + str);
-                    notificationManager.notify(GROUP_ID, NOTIFICATION_ID + 1 + currenciesMonitoringList.indexOf(curr), notificationBuilder.setContentText(str).setGroupSummary(false).build());
+                    String str = String.format("Валюта %s достигла нижней границы %f", curr.getName(), curr.getMinPrice());
+                    if (notifications.get(i) != curr.getMinPrice()) {
+                        notifications.set(i, curr.getMinPrice());
+                        notificationManager.notify(GROUP_ID, NOTIFICATION_ID + 1 + i, notificationBuilder.setContentText(str).setGroupSummary(false).build());
+                    }
                 }
             }
         }
@@ -290,6 +297,10 @@ public class CriptoMonitorService extends Service {
                         JSonDataCurrencies result = response.body();
                         //Обновляем данные списка отслеживаемых валют
                         result.updateMonitoringCurrencies(currenciesMonitoringList);
+                        if(notifications.size() == 0) {
+                            for(int i = 0; i < currenciesMonitoringList.size(); i++)
+                                notifications.add(-1.0);
+                        }
                         //Проверяем достижение текущей цены границ
                         isReachedRangeCurrencies();
                         //Если есть приложение, то отправляем сигнал о том, что данные обновлены

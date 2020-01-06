@@ -97,7 +97,7 @@ public class AddFragment extends Fragment {
 
     //Метод для обновления данных в списке
     public void updateListAdapter(){
-        if(listView != null) {
+        if(listView != null)   {
             //В зависимости от наличия списка всех валют и созданного адаптера списка отображаем данные
             if (adapter == null)
                 adapter = new CheckAdapter(listView.getContext(), listenerListCurrencies.getAllCurrencies());

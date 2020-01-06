@@ -10,33 +10,33 @@ public interface DataExchanger {
     final int LAYOUT_SETTINGS = 4;
 
     //Возвращает список всех возможных валют с веб-сервиса
-    public ArrayList<Currency> getAllCurrencies();
+    ArrayList<Currency> getAllCurrencies();
     //Возвращает список валют, выбранных для отслеживания
-    public ArrayList<Currency> getMonitoringCurrencies();
+    ArrayList<Currency> getMonitoringCurrencies();
     //Устанавливает список валют, выбранных для отслеживания
-    public void setCheckCurrencies(ArrayList<Currency> listCurrencies);
+    void setCheckCurrencies(ArrayList<Currency> listCurrencies);
 
     //Задает настройки сервиса
-    public void setServerSettings(int time);
+    void setServerSettings(int time);
    //Возвращает признак работы сервиса
-    public int isServiceStart();
+    int isServiceStart();
     //Возвращает признак режима работы сервиса
-    public boolean isServiceStartForeground();
+    boolean isServiceStartForeground();
     //Устанавливаем признак режима работы сервиса
-    public void setServiceStartForeground(int isForeground);
+    void setServiceStartForeground(int isForeground);
 
     //Удаляет валюту
-    public void deleteCurrency(Currency currency);
+    void deleteCurrency(Currency currency);
     //Обновляет валюту
-    public void updateCurrency(Currency currency);
+    void updateCurrency(Currency currency);
     //На смену текущей валюты
-    public void changeSelectionCurrency();
+    void changeSelectionCurrency();
 
     //Отображение фрагмента с информацией о валюте
-    public void updateRangeFragment();
+    void updateRangeFragment();
     //Настраивает вес лэйаутов
-    public void updateFragLayout(int typeLayout);
+    void updateFragLayout(int typeLayout);
 
     //Отображает диалоговое окно с сообщением
-    public void showAlertDialog(String message);
+    void showAlertDialog(String message);
 }

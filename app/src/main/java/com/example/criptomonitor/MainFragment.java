@@ -174,6 +174,7 @@ public class MainFragment extends Fragment {
                 }
             }
         }
+        updateListAdapter();
     }
 
     //Метод удаления валюты из списка отслеживаемых и БД
@@ -188,6 +189,8 @@ public class MainFragment extends Fragment {
                 break;
             }
         }
+        ((ItemAdapter) listView.getAdapter()).notifyDataSetChanged();
+        listenerListCurrencies.changeSelectionCurrency();
     }
 
     //Метод вставки валюты в список отслеживаемых и запись в БД
@@ -240,8 +243,8 @@ public class MainFragment extends Fragment {
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
         super.onCreateContextMenu(menu, v, menuInfo);
         MenuInflater inflater = getActivity().getMenuInflater();
-        menu.add(0, SET_RANGE, 0, "Set trackable range");
-        menu.add(0, DELETE, 0, "Delete currencies from list");
+        menu.add(0, SET_RANGE, 0, R.string.range);
+        menu.add(0, DELETE, 0, R.string.delete);
     }
 
     //Выбор пункта контекстного меню
@@ -259,15 +262,12 @@ public class MainFragment extends Fragment {
         return super.onContextItemSelected(item);
     }
 
-
     //При изменении признака отображения фрагмента, обновляем разметку
     @Override
     public void onHiddenChanged(boolean hidden) {
         super.onHiddenChanged(hidden);
-        if (hidden == false) {
-            Log.i("CriptoMonitor", "MainFragment(onHiddenChanged)");
+        if (hidden == false)
             listenerListCurrencies.updateFragLayout(DataExchanger.LAYOUT_MAIN);
-        }
     }
 }
 

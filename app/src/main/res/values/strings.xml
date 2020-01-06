@@ -15,5 +15,9 @@
     <string name="cancel">Отмена</string>
     <string name="cost">Текущая цена:</string>
     <string name="interval">Интервал контроля(сек):</string>
+    <string name="range">Настройки валюты</string>
+    <string name="delete">Удалить валюту</string>
+    <string name="repeat">Повторить</string>
+    <string name="close">Выйти из приложения</string>
 </resources>
 

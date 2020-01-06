@@ -13,7 +13,7 @@ public class JSonDataCurrencies {
     //Список валют в ответе от веб-сервиса
     private JsonObject coins;
 
-    //Метод, формирующий список всех возможных валют с их текущими ценами
+    //Метод, обновляющий список отслеживаемых валют текущими ценами
     public void updateMonitoringCurrencies(ArrayList<Currency> listFromService) {
         Iterator iterator = coins.entrySet().iterator();
         while (iterator.hasNext()) {
@@ -31,6 +31,7 @@ public class JSonDataCurrencies {
         }
     }
 
+    //Метод, формирующий список всех возможных валют с их текущими ценами
     public ArrayList<Currency> getAllCurrencies() {
         ArrayList<Currency> list = new ArrayList<Currency>();
         Iterator iterator = coins.entrySet().iterator();

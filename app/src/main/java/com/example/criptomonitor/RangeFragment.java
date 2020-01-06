@@ -34,7 +34,7 @@ public class RangeFragment extends Fragment {
     //Ссылка на текущую валюту
     private Currency currency;
     //Формат отображения данных
-    DecimalFormat df;
+    private DecimalFormat df;
     //Интерфейс обмена данными между активностью и фрагментом
     private DataExchanger listenerListCurrencies;
 
@@ -78,7 +78,7 @@ public class RangeFragment extends Fragment {
         btnCancel.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(currency != null) {
+                if (currency != null) {
                     etMax.setText(df.format(currency.getMaxPrice()));
                     etMin.setText(df.format(currency.getMinPrice()));
                     listenerListCurrencies.updateCurrency(null);
@@ -108,7 +108,7 @@ public class RangeFragment extends Fragment {
                     }
                     if (flag)
                         listenerListCurrencies.showAlertDialog(str);
-                     else {
+                    else {
                         //Если все введено верно, то меняем границы текущей валюты
                         currency.setMinPrice(valueMin);
                         currency.setMaxPrice(valueMax);
@@ -122,22 +122,28 @@ public class RangeFragment extends Fragment {
             }
         });
         //Если текущая валюта выбрана, то заполняем данные по ней
-        if (currency != null)
-            setSelectionCurrency(currency);
+        if (currency != null) {
+            tvName.setText(currency.getName());
+            tvPrice.setText(df.format(currency.getPrice()));
+            etMax.setText(df.format(currency.getMaxPrice()));
+            etMin.setText(df.format(currency.getMinPrice()));
+        }
         return view;
     }
 
     //Метод для заполнения фрагмента данными по текущей валюте
-    public void setSelectionCurrency(Currency mainFragCurrency) {
-        if(mainFragCurrency != null) {
-            currency = mainFragCurrency;
-            if (tvName != null) {
-                tvName.setText(currency.getName());
+    void setSelectionCurrency(Currency mainFragCurrency) {
+        if (mainFragCurrency != null) {
+            if (currency!= null && mainFragCurrency.equals(currency) && tvPrice != null)
                 tvPrice.setText(df.format(currency.getPrice()));
-                if(etMax.getText() == null || etMax.getText().equals(""))
+            else {
+                currency = mainFragCurrency;
+                if (tvName != null) {
+                    tvName.setText(currency.getName());
+                    tvPrice.setText(df.format(currency.getPrice()));
                     etMax.setText(df.format(currency.getMaxPrice()));
-                if(etMin.getText() == null || etMin.getText().equals(""))
                     etMin.setText(df.format(currency.getMinPrice()));
+                }
             }
         }
     }

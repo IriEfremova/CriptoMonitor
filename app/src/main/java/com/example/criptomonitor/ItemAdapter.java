@@ -16,13 +16,14 @@ import java.util.Locale;
 //Класс адаптера списка, который отображает имя валюты и ее текущую цену
 public class ItemAdapter extends ArrayAdapter<Currency> {
     private final int colorWhite = Color.WHITE;
+    //Подсветка текущей строки
     private final int colorGray = Color.rgb(170,215,190);
+    //Позиция текущей строки
     private int selectionPosition;
 
     public ItemAdapter(Context context, ArrayList<Currency> arr) {
         super(context, R.layout.item_adapter, arr);
         selectionPosition = 0;
-
     }
 
     @Override
@@ -33,6 +34,7 @@ public class ItemAdapter extends ArrayAdapter<Currency> {
         if (convertView == null) {
             convertView = LayoutInflater.from(getContext()).inflate(R.layout.item_adapter, null);
         }
+        //Заполняем строки данными
         DecimalFormatSymbols otherSymbols = new DecimalFormatSymbols(Locale.getDefault());
         otherSymbols.setDecimalSeparator('.');
         DecimalFormat df = new DecimalFormat("0.0000000000", otherSymbols);
@@ -41,6 +43,7 @@ public class ItemAdapter extends ArrayAdapter<Currency> {
         ((TextView) convertView.findViewById(R.id.cost)).setText(df.format(currency.getPrice()));
         ((TextView) convertView.findViewById(R.id.cost)).setFocusable(false);
 
+        //Подсвечиваем текущую строку
         if (selectionPosition == position){
             convertView.setBackgroundColor(colorGray);
 
@@ -51,13 +54,14 @@ public class ItemAdapter extends ArrayAdapter<Currency> {
         return convertView;
     }
 
-
-    public void setSelectionPosition(int position){
+    //Метод для задания текущей строки
+    void setSelectionPosition(int position){
         selectionPosition = position;
         notifyDataSetChanged();
     }
 
-    public int getSelectionPosition(){
+    //Метод, возвращающий номер текущей строки
+    int getSelectionPosition(){
         return selectionPosition;
     }
 }
