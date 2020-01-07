@@ -85,14 +85,10 @@ public class MainFragment extends Fragment {
         if (listAllCurrencies != null) {
             for(Currency currency : list){
                 int ind = listAllCurrencies.indexOf(currency);
-                if(ind >= 0) {
+                if(ind >= 0)
                     listAllCurrencies.get(ind).replace(currency);
-                    Log.i("CriptoMonitor", "MainFragment(setListAllCurrencies): replace" + currency.getName());
-                }
-                else {
+                else
                     listAllCurrencies.add(currency);
-                    Log.i("CriptoMonitor", "MainFragment(setListAllCurrencies): add" + currency.getName());
-                }
             }
         }
         else

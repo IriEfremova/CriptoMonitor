@@ -234,23 +234,27 @@ public class CriptoMonitorService extends Service {
 
     //Метод для проверки достижения границ
     public void isReachedRangeCurrencies() {
-        if (currenciesMonitoringList != null && currenciesMonitoringList.size() > 0) {
-            for (int i = 0; i < currenciesMonitoringList.size(); i++) {
-                Currency curr = currenciesMonitoringList.get(i);
-                if (curr.getPrice() >= curr.getMaxPrice()) {
-                    String str = String.format("Валюта %s достигла верхней границы %f", curr.getName(), curr.getMaxPrice());
-                    if (notifications.get(i) != curr.getMaxPrice()) {
-                        notifications.set(i, curr.getMaxPrice());
-                        notificationManager.notify(GROUP_ID, NOTIFICATION_ID + 1 + i, notificationBuilder.setContentText(str).setGroupSummary(false).build());
-                    }
-                } else if (curr.getPrice() <= curr.getMinPrice()) {
-                    String str = String.format("Валюта %s достигла нижней границы %f", curr.getName(), curr.getMinPrice());
-                    if (notifications.get(i) != curr.getMinPrice()) {
-                        notifications.set(i, curr.getMinPrice());
-                        notificationManager.notify(GROUP_ID, NOTIFICATION_ID + 1 + i, notificationBuilder.setContentText(str).setGroupSummary(false).build());
+        try {
+            if (currenciesMonitoringList != null && currenciesMonitoringList.size() > 0) {
+                for (int i = 0; i < currenciesMonitoringList.size(); i++) {
+                    Currency curr = currenciesMonitoringList.get(i);
+                    if (curr.getPrice() >= curr.getMaxPrice()) {
+                        String str = String.format("Валюта %s достигла верхней границы %f", curr.getName(), curr.getMaxPrice());
+                        if (notifications!= null && notifications.size() >= i && notifications.get(i) != curr.getMaxPrice()) {
+                            notifications.set(i, curr.getMaxPrice());
+                            notificationManager.notify(GROUP_ID, NOTIFICATION_ID + 1 + i, notificationBuilder.setContentText(str).setGroupSummary(false).build());
+                        }
+                    } else if (curr.getPrice() <= curr.getMinPrice()) {
+                        String str = String.format("Валюта %s достигла нижней границы %f", curr.getName(), curr.getMinPrice());
+                        if (notifications!= null && notifications.size() >= i && notifications.get(i) != curr.getMinPrice()) {
+                            notifications.set(i, curr.getMinPrice());
+                            notificationManager.notify(GROUP_ID, NOTIFICATION_ID + 1 + i, notificationBuilder.setContentText(str).setGroupSummary(false).build());
+                        }
                     }
                 }
             }
+        }catch (IndexOutOfBoundsException e){
+            Log.i("CriptoMonitor", "CriptoMonitorService(isReachedRangeCurrencies):" + e.getMessage());
         }
     }
 

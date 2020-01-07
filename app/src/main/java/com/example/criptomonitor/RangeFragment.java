@@ -131,6 +131,11 @@ public class RangeFragment extends Fragment {
         return view;
     }
 
+    //Метод возвращает текущую валюту
+    Currency getSelectionCurrency(){
+        return currency;
+    }
+
     //Метод для заполнения фрагмента данными по текущей валюте
     void setSelectionCurrency(Currency mainFragCurrency) {
         if (mainFragCurrency != null) {
