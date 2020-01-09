@@ -37,7 +37,7 @@ public class ItemAdapter extends ArrayAdapter<Currency> {
         //Заполняем строки данными
         DecimalFormatSymbols otherSymbols = new DecimalFormatSymbols(Locale.getDefault());
         otherSymbols.setDecimalSeparator('.');
-        DecimalFormat df = new DecimalFormat("0.0000000000", otherSymbols);
+        DecimalFormat df = new DecimalFormat("0.00000000", otherSymbols);
         // Заполняем адаптер
         ((TextView) convertView.findViewById(R.id.name)).setText(currency.getName());
         ((TextView) convertView.findViewById(R.id.cost)).setText(df.format(currency.getPrice()));

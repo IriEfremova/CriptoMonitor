@@ -46,7 +46,7 @@ public class RangeFragment extends Fragment {
         setRetainInstance(true);
         DecimalFormatSymbols otherSymbols = new DecimalFormatSymbols(Locale.getDefault());
         otherSymbols.setDecimalSeparator('.');
-        df = new DecimalFormat("0.0000000000", otherSymbols);
+        df = new DecimalFormat("0.00000000", otherSymbols);
     }
 
     //Привязка к активности, проверяем, что активность имплементирует нужный интерфейс

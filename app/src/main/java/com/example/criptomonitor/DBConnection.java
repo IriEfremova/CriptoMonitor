@@ -94,10 +94,6 @@ public class DBConnection extends SQLiteOpenHelper {
 
     //Записываем данные в таблицу настроек
     public void insertSettings(String name, int value) {
-        String sql1 = String.format(Locale.US, "DELETE FROM SETTINGS");
-        Log.i("CriptoMonitor", "DBConnection(deleteCurrency): " + sql1);
-        getWritableDatabase().execSQL(sql1);
-
         String sql;
         Cursor c = getWritableDatabase().query("Settings", new String[]{"value"}, "name = ?", new String[]{name}, null, null, null);
         // ставим позицию курсора на первую строку выборки

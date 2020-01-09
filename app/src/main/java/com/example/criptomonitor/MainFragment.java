@@ -261,6 +261,7 @@ public class MainFragment extends Fragment {
     //При изменении признака отображения фрагмента, обновляем разметку
     @Override
     public void onHiddenChanged(boolean hidden) {
+        Log.i("CriptoMonitor", "MainFragment(onHiddenChanged)");
         super.onHiddenChanged(hidden);
         if (hidden == false)
             listenerListCurrencies.updateFragLayout(DataExchanger.LAYOUT_MAIN);

@@ -8,6 +8,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
@@ -43,6 +44,7 @@ public class CriptoMonitorService extends Service {
     public final static String CRIPTOSERVICE_ERROR = "CRIPTOSERVICE_ERROR";
     public final static String CRIPTOSERVICE_LIST = "CRIPTOSERVICE_LIST";
     public final static String CRIPTOSERVICE_CHANNEL = "CRIPTOSERVICE_CHANNEL";
+    public final static String NOTIFICATION_INTENT = "NOTIFICATION_INTENT";
     private final static String CHANNEL_ID = "com.example.criptomonitor";
     private final static String GROUP_ID = "com.example.criptogroup";
     private final static int NOTIFICATION_ID = 1122;
@@ -100,6 +102,11 @@ public class CriptoMonitorService extends Service {
         getAllCurrencies();
     }
 
+    public void clearNotification(){
+        if(notificationManager != null)
+            notificationManager.cancelAll();
+    }
+
     //Метод, срабатывающий при первоначальномпривязывании внешнего приложения к сервису,
     //отправляем приложению данные по всем валютам с веб-сервиса
     @Override
@@ -135,10 +142,12 @@ public class CriptoMonitorService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-            notificationManager.deleteNotificationChannel(CHANNEL_ID);
+        notificationManager.cancelAll();
         notifications.clear();
         notifications = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            notificationManager.deleteNotificationChannel(CHANNEL_ID);
+
         if (serviceTimer != null) {
             serviceTimer.cancel();
             serviceTimer = null;
@@ -222,8 +231,11 @@ public class CriptoMonitorService extends Service {
         }
         Intent resultIntent = new Intent(this, MainActivity.class);
         resultIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        PendingIntent resultPendingIntent = PendingIntent.getActivity(this, 0, resultIntent, 0);
 
+        resultIntent.putExtra(NOTIFICATION_INTENT, true);
+        resultIntent.putExtra("extra","Test");
+
+        PendingIntent resultPendingIntent = PendingIntent.getActivity(this, 0, resultIntent, 0);
         notificationBuilder.setSmallIcon(R.drawable.ic_cripto_notif).setContentIntent(resultPendingIntent).setContentTitle("CriptoMonitor").setGroup(GROUP_ID).setGroupSummary(true);
         //Настраиваем таймер по умолчанию и запускаем задание
         intervalReload = TIME_RELOAD_MIN;
@@ -240,15 +252,15 @@ public class CriptoMonitorService extends Service {
                     Currency curr = currenciesMonitoringList.get(i);
                     if (curr.getPrice() >= curr.getMaxPrice()) {
                         String str = String.format("Валюта %s достигла верхней границы %f", curr.getName(), curr.getMaxPrice());
-                        if (notifications!= null && notifications.size() >= i && notifications.get(i) != curr.getMaxPrice()) {
+                        if (notifications!= null && notifications.size() > 0 && notifications.get(i) != curr.getMaxPrice()) {
                             notifications.set(i, curr.getMaxPrice());
-                            notificationManager.notify(GROUP_ID, NOTIFICATION_ID + 1 + i, notificationBuilder.setContentText(str).setGroupSummary(false).build());
+                            notificationManager.notify(NOTIFICATION_ID + 1 + i, notificationBuilder.setContentText(str).setGroupSummary(false).build());
                         }
                     } else if (curr.getPrice() <= curr.getMinPrice()) {
                         String str = String.format("Валюта %s достигла нижней границы %f", curr.getName(), curr.getMinPrice());
-                        if (notifications!= null && notifications.size() >= i && notifications.get(i) != curr.getMinPrice()) {
+                        if (notifications!= null && notifications.size() > 0 && notifications.get(i) != curr.getMinPrice()) {
                             notifications.set(i, curr.getMinPrice());
-                            notificationManager.notify(GROUP_ID, NOTIFICATION_ID + 1 + i, notificationBuilder.setContentText(str).setGroupSummary(false).build());
+                            notificationManager.notify(NOTIFICATION_ID + 1 + i, notificationBuilder.setContentText(str).setGroupSummary(false).build());
                         }
                     }
                 }
